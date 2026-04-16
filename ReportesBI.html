@@ -1,0 +1,4058 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Executive Analytics | HelpDesk Pro</title>
+
+<!-- FAVICON — HelpDesk Bexalta (life-preserver en azul de marca) -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%230b3ea1'/><path fill='white' d='M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1m0 1a6 6 0 1 1 0 12A6 6 0 0 1 8 2m0 2.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7m0 1a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5m-4.707-.854 2.5 2.5.708.707-.708.707-2.5-2.5.708-.707zm9.414 0 .707.707-2.5 2.5-.707-.707 2.5-2.5zM7.5 9.5h1v2.5h-1zm0-5.5h1V6.5h-1z'/></svg>">
+
+<!-- Para móviles (pantalla de inicio) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%230b3ea1'/><path fill='white' d='M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1m0 1a6 6 0 1 1 0 12A6 6 0 0 1 8 2m0 2.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7m0 1a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5m-4.707-.854 2.5 2.5.708.707-.708.707-2.5-2.5.708-.707zm9.414 0 .707.707-2.5 2.5-.707-.707 2.5-2.5zM7.5 9.5h1v2.5h-1zm0-5.5h1V6.5h-1z'/></svg>">
+
+<!-- Metadatos PWA -->
+<meta name="application-name" content="HelpDesk Bexalta">
+<meta name="theme-color" content="#0b3ea1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HelpDesk">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+  /* ═══════════════════════════════════════════════════════════
+     BI EJECUTIVO — STYLESHEET CONSOLIDADO FINAL
+     Sin duplicados. Todos los fixes integrados.
+     ═══════════════════════════════════════════════════════════ */
+
+  /* =========================================
+     1. VARIABLES Y BASE
+     ========================================= */
+  :root {
+    --brand: #0b3ea1;
+    --brand-dark: #0a1e5e;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --bg-body: #f7f9fc;
+    --bg-card: #ffffff;
+    --success: #16a34a;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #0ea5e9;
+    --purple: #8b5cf6;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 14px rgba(20,25,40,0.04);
+    --radius: 14px;
+  }
+
+  body {
+    background-color: var(--bg-body);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 0.85rem;
+    overflow-x: hidden;
+    margin: 0;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--ink);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  /* =========================================
+     2. LAYOUT — Fixed sidebar + offset main
+     ========================================= */
+  .bi-layout {
+    min-height: 100vh;
+  }
+
+  /* =========================================
+     3. SIDEBAR — FIXED, nunca se mueve
+     ========================================= */
+  .bi-sidebar {
+    background: linear-gradient(180deg, var(--brand) 0%, #0b205e 100%);
+    color: #fff;
+    padding: 1.5rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+  }
+
+  .bi-sidebar .brand {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: rgba(255,255,255,0.95);
+  }
+
+  .filter-group { margin-bottom: 1.25rem; }
+
+  .filter-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.6);
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    letter-spacing: 0.5px;
+  }
+
+  .bi-sidebar .form-select {
+    background-color: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    font-size: 0.85rem;
+    border-radius: 8px;
+  }
+
+  .bi-sidebar .form-select:focus {
+    background-color: rgba(255,255,255,0.15);
+    border-color: #fff;
+    box-shadow: none;
+    color: #fff;
+  }
+
+  .bi-sidebar .form-select option {
+    background: var(--brand-dark);
+    color: #fff;
+  }
+
+  .sidebar-divider {
+    border-top: 1px solid rgba(255,255,255,0.15);
+    margin: 1rem 0;
+  }
+
+  .sidebar-actions { margin-top: auto; }
+
+  .btn-sidebar {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .btn-sidebar:hover {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    transform: translateY(-1px);
+  }
+
+  .last-update {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.5);
+    text-align: center;
+    margin-top: 12px;
+  }
+
+  .btn-clear-filters {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #fca5a5;
+    font-weight: 500;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+  }
+  .btn-clear-filters:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fef2f2;
+  }
+
+  /* =========================================
+     4. CONTENIDO PRINCIPAL
+     ========================================= */
+  .bi-main {
+    margin-left: 260px;
+    padding: 2rem 2.5rem;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  /* =========================================
+     5. KPI CARDS
+     ========================================= */
+  .kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+
+  [class*="col-"] > .kpi-card {
+    height: 100%;
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(20,25,40,0.07);
+  }
+
+  .kpi-body {
+    padding: 1.25rem 1.25rem 0.75rem;
+  }
+
+  .kpi-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .kpi-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .kpi-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+
+  .kpi-sub {
+    font-size: 0.75rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .kpi-bar {
+    height: 3px;
+    width: 100%;
+  }
+
+  .kpi-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+  }
+
+  .kpi-success { border-left-color: var(--success); }
+  .kpi-success .kpi-value { color: var(--success); }
+  .kpi-warning { border-left-color: var(--warning); }
+  .kpi-warning .kpi-value { color: var(--warning); }
+  .kpi-danger { border-left-color: var(--danger); }
+  .kpi-danger .kpi-value { color: var(--danger); }
+
+  /* =========================================
+     6. SLA PROGRESS BAR
+     ========================================= */
+  .sla-bar-track {
+    width: 100%;
+    height: 10px;
+    background: #fee2e2;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+
+  .sla-bar-fill {
+    height: 100%;
+    border-radius: 5px;
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    transition: width 0.6s ease;
+  }
+
+  /* =========================================
+     7. CHART CARDS
+     ========================================= */
+  .chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    height: auto;
+    transition: box-shadow 0.2s;
+  }
+
+  [class*="col-"] > .chart-card {
+    height: 100%;
+  }
+
+  .chart-card:hover {
+    box-shadow: 0 6px 18px rgba(20,25,40,0.07);
+  }
+
+  .chart-header {
+    padding: 1rem 1.25rem 0.5rem;
+    border-bottom: none;
+  }
+
+  .chart-header h6 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+
+  .chart-header small {
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .chart-body {
+    padding: 0.75rem 1.25rem 1rem;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .chart-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .chart-wrapper canvas {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .chart-h-280 { height: 280px; max-height: 280px; }
+  .chart-h-240 { height: 240px; max-height: 240px; }
+  .chart-h-200 { height: 200px; max-height: 200px; }
+  .chart-h-320 { height: 320px; max-height: 320px; }
+  .chart-h-350 { height: 350px; max-height: 350px; }
+
+  .chart-container {
+    position: relative;
+    height: 250px;
+    width: 100%;
+  }
+
+  /* =========================================
+     8. TABS
+     ========================================= */
+  .bi-tabs {
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+    margin-top: 0;
+    gap: 0;
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .bi-tabs .nav-item {
+    margin-bottom: -1px;
+  }
+
+  .bi-tabs .nav-link {
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 0.82rem;
+    border: none;
+    background: transparent;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .bi-tabs .nav-link:hover {
+    color: var(--brand);
+    background: rgba(11, 62, 161, 0.04);
+  }
+
+  .bi-tabs .nav-link.active {
+    color: var(--brand);
+    border-bottom: 2px solid var(--brand);
+    background: transparent;
+  }
+
+  .tab-content > .tab-pane {
+    min-height: 0;
+  }
+
+  /* =========================================
+     9. CARDS GENÉRICAS
+     ========================================= */
+  .card-bi {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    margin-bottom: 1.5rem;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .card-bi:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(20,25,40,0.08);
+  }
+
+  .card-header-bi {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-header-bi h6 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--ink);
+  }
+
+  .card-body-bi { padding: 1.5rem; }
+
+  /* =========================================
+     10. TABLE CARDS
+     ========================================= */
+  .table-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    max-width: 100%;
+  }
+
+  .table-card-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+  }
+
+  .table-card-header h6 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+    max-height: 400px;
+    overflow-y: auto;
+    max-width: 100%;
+  }
+
+  .table-scroll-lg {
+    max-height: 600px;
+  }
+
+  .table-responsive {
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+
+  /* =========================================
+     11. TABLAS
+     ========================================= */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    table-layout: auto;
+  }
+
+  .data-table th {
+    background: #f8fafc;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .data-table td {
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--ink);
+    vertical-align: middle;
+  }
+
+  .data-table tbody tr:hover {
+    background-color: #f1f5f9;
+    cursor: pointer;
+  }
+
+  /* =========================================
+     12. BADGES
+     ========================================= */
+  .badge-status {
+    padding: 0.35em 0.65em;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+  }
+
+  .bg-soft-success { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+  .bg-soft-danger  { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+  .bg-soft-warning { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+  .bg-soft-info    { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+
+  .badge-sla-ok {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+  }
+
+  .badge-sla-late {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+  }
+
+  .badge-sla-warn {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+  }
+
+  .badge-neutral {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+  }
+
+  .filter-badge-none {
+    font-size: 0.75rem;
+    padding: 4px 12px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: #94a3b8;
+    font-weight: 500;
+  }
+
+  .filter-badge-active {
+    font-size: 0.75rem;
+    padding: 4px 12px;
+    border-radius: 6px;
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-weight: 600;
+    border: 1px solid #bfdbfe;
+  }
+
+  /* =========================================
+     13. DONUT CENTER LABEL
+     ========================================= */
+  .donut-center-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -55%);
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .donut-center-label .pct {
+    font-size: 1.8rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--ink);
+  }
+
+  .donut-center-label .sub {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  /* =========================================
+     14. UTILITY BUTTONS
+     ========================================= */
+  .btn-outline-subtle {
+    background: #fff;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.15s;
+  }
+
+  .btn-outline-subtle:hover {
+    border-color: #cbd5e1;
+    color: var(--ink);
+    background: #f8fafc;
+  }
+
+  /* =========================================
+     15. VENCIMIENTO / RENDIMIENTO CARDS
+     ========================================= */
+  .venc-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    transition: border-color 0.15s;
+  }
+
+  .venc-card:hover { border-color: #cbd5e1; }
+
+  .venc-card .venc-val {
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .venc-card .venc-label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .perf-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: #f1f5f9;
+    overflow: hidden;
+    min-width: 60px;
+  }
+
+  .perf-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s;
+  }
+
+  .perf-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .perf-indicator.up      { color: #16a34a; }
+  .perf-indicator.down    { color: #dc2626; }
+  .perf-indicator.neutral { color: #94a3b8; }
+
+  /* =========================================
+     16. LOADING SCREEN
+     ========================================= */
+  #loader {
+    position: fixed;
+    inset: 0;
+    background: rgba(255,255,255,0.9);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+  }
+
+  /* =========================================
+     17. RESPONSIVE
+     ========================================= */
+  .mobile-toggle { display: none; }
+
+  @media (max-width: 992px) {
+    .bi-sidebar {
+      left: -280px;
+      transition: left 0.3s ease;
+    }
+
+    .bi-sidebar.open { left: 0; }
+    .bi-main { margin-left: 0; padding: 1rem; }
+    .mobile-toggle { display: inline-block !important; }
+
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      z-index: 999;
+    }
+    .sidebar-overlay.active { display: block; }
+  }
+
+  @media (max-width: 768px) {
+    .kpi-body { padding: 1rem; }
+    .kpi-value { font-size: 1.5rem; }
+    .chart-h-280, .chart-h-240, .chart-h-200 { height: 200px; max-height: 200px; }
+    .bi-main { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="spinner-border text-primary mb-2" style="width: 2.5rem; height: 2.5rem;"></div>
+  <div class="fw-semibold text-dark small">Generando Inteligencia de Negocio</div>
+  <div class="status-text" id="loaderStatus">Conectando...</div>
+</div>
+
+<!-- OVERLAY MOBILE -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<div class="bi-layout">
+
+  <!-- ========================================
+       SIDEBAR
+       ======================================== -->
+  <aside class="bi-sidebar" id="sidebar">
+    <div class="brand">
+      <i class="bi bi-pie-chart-fill"></i>
+      <span>Panel BI Directivo</span>
+      <button class="btn btn-sm text-white ms-auto d-xl-none" onclick="toggleSidebar()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <!-- Período -->
+<div class="filter-group">
+  <div class="filter-label"><i class="bi bi-calendar3"></i> Período</div>
+  
+  <select class="form-select form-select-sm" id="filtroPeriodo" onchange="toggleFechasPersonalizadas()">
+    <option value="hoy">Hoy</option>
+    <option value="semana">Últimos 7 Días</option>
+    <option value="mes" selected>Últimos 30 Días</option>
+    <option value="trimestre">Trimestre</option>
+    <option value="custom">Rango Personalizado</option>
+    <option value="todo">Histórico Completo</option>
+  </select>
+
+  <div id="divFechasCustom" class="mt-2 p-2 bg-white bg-opacity-10 rounded" style="display:none;">
+    <div class="mb-1">
+      <label class="text-white small" style="font-size:0.7rem">Desde</label>
+      <input type="date" id="fInicio" class="form-control form-control-sm">
+    </div>
+    <div class="mb-2">
+      <label class="text-white small" style="font-size:0.7rem">Hasta</label>
+      <input type="date" id="fFin" class="form-control form-control-sm">
+    </div>
+    <button class="btn btn-primary btn-sm w-100 py-0" onclick="cargarDatos()">Aplicar</button>
+  </div>
+</div>
+
+    <hr class="sidebar-divider">
+
+    <!-- Filtros secundarios -->
+    <div class="filter-group">
+      <div class="filter-label"><i class="bi bi-geo-alt"></i> Ubicación</div>
+      <select class="form-select form-select-sm" id="filtroUbicacion" onchange="aplicarFiltrosLocales()">
+        <option value="all">Todas las Ubicaciones</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <div class="filter-label"><i class="bi bi-building"></i> Área</div>
+      <select class="form-select form-select-sm" id="filtroArea" onchange="aplicarFiltrosLocales()">
+        <option value="all">Todas las Áreas</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <div class="filter-label"><i class="bi bi-person-badge"></i> Agente</div>
+      <select class="form-select form-select-sm" id="filtroAgente" onchange="aplicarFiltrosLocales()">
+        <option value="all">Todos los Agentes</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <div class="filter-label"><i class="bi bi-flag"></i> Prioridad</div>
+      <select class="form-select form-select-sm" id="filtroPrioridad" onchange="aplicarFiltrosLocales()">
+        <option value="all">Todas</option>
+        <option value="Alta">Alta / Crítica / Urgente</option>
+        <option value="Media">Media</option>
+        <option value="Baja">Baja</option>
+        <option value="plan72">Planeadas 72 hrs</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <div class="filter-label"><i class="bi bi-funnel"></i> Estado</div>
+      <select class="form-select form-select-sm" id="filtroEstatus" onchange="aplicarFiltrosLocales()">
+        <option value="all">Todos</option>
+        <option value="abiertos">Activos (No Cerrados)</option>
+        <option value="cerrados">Cerrados / Resueltos</option>
+        <option value="vencidos">⚠️ Vencidos</option>
+        <option value="aTiempo">✅ Cerrados a Tiempo</option>
+        <option value="tarde">❌ Cerrados Tarde</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <div class="filter-label"><i class="bi bi-person"></i> Usuario</div>
+      <select class="form-select form-select-sm" id="filtroCliente" onchange="aplicarFiltrosLocales()">
+        <option value="all">Todos</option>
+      </select>
+    </div>
+
+        <hr class="sidebar-divider">
+
+    <!-- Limpiar Filtros -->
+    <button class="btn btn-clear-filters btn-sm w-100 mb-2" id="btnClearFilters" onclick="limpiarFiltrosBI()" style="display:none;">
+      <i class="bi bi-x-circle me-1"></i>Limpiar Todos los Filtros
+    </button>
+
+
+    <!-- Acciones -->
+    <div class="sidebar-actions">
+      <div class="d-grid gap-2">
+        <button class="btn btn-sidebar btn-sm" onclick="exportarPDF()">
+          <i class="bi bi-file-earmark-pdf text-danger"></i> Exportar PDF
+        </button>
+        <button class="btn btn-sidebar btn-sm" onclick="exportarExcel()">
+          <i class="bi bi-file-earmark-excel text-success"></i> Exportar Excel
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="cargarDatos()">
+          <i class="bi bi-arrow-clockwise"></i> Actualizar Datos
+        </button>
+      </div>
+      <div class="last-update" id="lastUpdate">Esperando datos...</div>
+    </div>
+  </aside>
+
+  <!-- ========================================
+       MAIN CONTENT
+       ======================================== -->
+  <main class="bi-main" id="mainContent">
+
+    <!-- Mobile Toggle -->
+    <button class="btn btn-outline-subtle mobile-toggle mb-3" onclick="toggleSidebar()">
+      <i class="bi bi-sliders me-2"></i>Filtros y Opciones
+    </button>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-end mb-3 flex-wrap gap-2">
+      <div>
+        <h4 class="fw-bold mb-1">Panel de Control Ejecutivo</h4>
+        <p class="text-muted mb-0 small">Vista consolidada de operaciones y cumplimiento SLA</p>
+      </div>
+      <span id="filterIndicator" class="filter-badge-none">Sin filtros</span>
+    </div>
+
+    <!-- ========================================
+         KPIs ROW
+         ======================================== -->
+    <div class="row g-3 mb-3">
+      <!-- Total Período -->
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card">
+          <div class="kpi-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="kpi-label text-primary">Total Período</div>
+                <div class="kpi-value text-dark" id="kpiTotal">0</div>
+              </div>
+              <div class="kpi-icon bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-layers-fill"></i>
+              </div>
+            </div>
+            <div class="kpi-sub">tickets registrados</div>
+          </div>
+          <div class="kpi-bar bg-primary"></div>
+        </div>
+      </div>
+
+      <!-- Activos -->
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card">
+          <div class="kpi-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="kpi-label text-warning">Activos</div>
+                <div class="kpi-value text-warning" id="kpiActivos">0</div>
+              </div>
+              <div class="kpi-icon bg-warning bg-opacity-10 text-warning">
+                <i class="bi bi-hourglass-split"></i>
+              </div>
+            </div>
+            <div class="kpi-sub">Abiertos</div>
+          </div>
+          <div class="kpi-bar bg-warning"></div>
+        </div>
+      </div>
+
+      <!-- Vencidos -->
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card">
+          <div class="kpi-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="kpi-label text-danger">Vencidos</div>
+                <div class="kpi-value text-danger" id="kpiVencidos">0</div>
+              </div>
+              <div class="kpi-icon bg-danger bg-opacity-10 text-danger">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+              </div>
+            </div>
+            <div class="kpi-sub" id="kpiVencidosSub">requieren atención</div>
+          </div>
+          <div class="kpi-bar bg-danger"></div>
+        </div>
+      </div>
+
+      <!-- % A Tiempo -->
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card">
+          <div class="kpi-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="kpi-label text-success">% A Tiempo</div>
+                <div class="kpi-value text-success" id="kpiPctATiempo">0%</div>
+              </div>
+              <div class="kpi-icon bg-success bg-opacity-10 text-success">
+                <i class="bi bi-check-circle-fill"></i>
+              </div>
+            </div>
+            <div class="kpi-sub">de cerrados</div>
+          </div>
+          <div class="kpi-bar bg-success"></div>
+        </div>
+      </div>
+
+      <!-- % Tarde -->
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card">
+          <div class="kpi-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="kpi-label text-danger">% Tarde</div>
+                <div class="kpi-value text-danger" id="kpiPctTarde">0%</div>
+              </div>
+              <div class="kpi-icon bg-danger bg-opacity-10 text-danger">
+                <i class="bi bi-x-circle-fill"></i>
+              </div>
+            </div>
+            <div class="kpi-sub">de cerrados</div>
+          </div>
+          <div class="kpi-bar bg-danger"></div>
+        </div>
+      </div>
+
+      <!-- Plan 72 -->
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card">
+          <div class="kpi-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="kpi-label" style="color: var(--purple);">Plan 72hrs</div>
+                <div class="kpi-value" style="color: var(--purple);" id="kpiPlan72">0</div>
+              </div>
+              <div class="kpi-icon" style="background: rgba(139,92,246,0.1); color: var(--purple);">
+                <i class="bi bi-clock-history"></i>
+              </div>
+            </div>
+            <div class="kpi-sub">tickets planeados</div>
+          </div>
+          <div class="kpi-bar" style="background: var(--purple);"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================
+         SLA COMPLIANCE BAR
+         ======================================== -->
+    <div class="chart-card mb-3">
+      <div style="padding: 0.875rem 1.25rem;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="small text-muted fw-medium">Cumplimiento SLA (Tickets Cerrados)</span>
+          <span class="small fw-bold" id="slaSummary">0 a tiempo / 0 tarde</span>
+        </div>
+        <div class="sla-bar-track">
+          <div class="sla-bar-fill" id="slaProgressBar" style="width: 0%; background: linear-gradient(90deg, var(--success), var(--teal));"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================
+         TABS
+         ======================================== -->
+    <ul class="nav bi-tabs" role="tablist">
+      <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabGeneral">
+          <i class="bi bi-bar-chart me-1"></i>General
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabSLA">
+          <i class="bi bi-speedometer2 me-1"></i>SLA & Vencidos
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabUbicacion">
+          <i class="bi bi-geo-alt me-1"></i>Por Ubicación
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabNotas">
+          <i class="bi bi-chat-text me-1"></i>Notas
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabRendimiento">
+          <i class="bi bi-people me-1"></i>Rendimiento
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabVencimientos">
+          <i class="bi bi-exclamation-diamond me-1"></i>Vencimientos
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+
+      <!-- ==========================================
+           TAB: GENERAL
+           ========================================== -->
+      <div class="tab-pane fade show active" id="tabGeneral">
+        <div class="row g-3 mb-3">
+          <!-- Volumen por Área -->
+          <div class="col-lg-8">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h6>Volumen por Área</h6>
+                <small>Top 10 áreas con mayor demanda</small>
+              </div>
+              <div class="chart-body">
+                <div class="chart-wrapper chart-h-280">
+                  <canvas id="chartAreas"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Distribución de Estados -->
+          <div class="col-lg-4">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h6>Distribución de Estados</h6>
+                <small>Composición actual</small>
+              </div>
+              <div class="chart-body">
+                <div class="chart-wrapper chart-h-240">
+                  <canvas id="chartEstatus"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <!-- Top 10 Agentes -->
+          <div class="col-lg-4">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h6>Top 10 Agentes</h6>
+                <small>Por volumen de tickets</small>
+              </div>
+              <div class="chart-body">
+                <div class="chart-wrapper chart-h-280">
+                  <canvas id="chartAgentes"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Carga por Día -->
+          <div class="col-lg-4">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h6>Carga por Día de Semana</h6>
+                <small>Distribución semanal</small>
+              </div>
+              <div class="chart-body">
+                <div class="chart-wrapper chart-h-240">
+                  <canvas id="chartWeek"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Prioridades -->
+          <div class="col-lg-4">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h6>Distribución por Prioridad</h6>
+                <small>Composición de riesgo</small>
+              </div>
+              <div class="chart-body">
+                <div class="chart-wrapper chart-h-240">
+                  <canvas id="chartPrioridad"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           TAB: SLA & VENCIDOS
+           ========================================== -->
+      <div class="tab-pane fade" id="tabSLA">
+        <div class="row g-3 mb-3">
+          <!-- Cumplimiento SLA Donut -->
+          <div class="col-lg-4">
+            <div class="chart-card">
+              <div class="chart-header text-center">
+                <h6>Cumplimiento SLA</h6>
+                <small>A Tiempo vs Tarde (cerrados)</small>
+              </div>
+              <div class="chart-body justify-content-center">
+                <div class="chart-wrapper chart-h-200" style="position:relative;">
+                  <canvas id="chartSLACompliance"></canvas>
+                  <div class="donut-center-label">
+                    <div class="pct" id="slaDonutPct">0%</div>
+                    <div class="sub">a tiempo</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Antigüedad Backlog -->
+          <div class="col-lg-4">
+            <div class="chart-card">
+              <div class="chart-header text-center">
+                <h6>Antigüedad del Backlog</h6>
+                <small>Días desde creación (tickets abiertos)</small>
+              </div>
+              <div class="chart-body justify-content-center">
+                <div class="chart-wrapper chart-h-200">
+                  <canvas id="chartAgeing"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Resumen numérico SLA -->
+          <div class="col-lg-4">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h6>Resumen de Cumplimiento</h6>
+              </div>
+              <div class="chart-body">
+                <div class="w-100">
+                  <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="small text-muted">Total Cerrados</span>
+                    <span class="fw-bold" id="slaTotalCerrados">0</span>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="small text-success"><i class="bi bi-check-circle-fill me-1"></i>A Tiempo</span>
+                    <span class="fw-bold text-success" id="slaATiempo">0</span>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="small text-danger"><i class="bi bi-x-circle-fill me-1"></i>Tarde</span>
+                    <span class="fw-bold text-danger" id="slaTarde">0</span>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="small text-warning"><i class="bi bi-exclamation-triangle-fill me-1"></i>Vencidos Activos</span>
+                    <span class="fw-bold text-warning" id="slaVencidosActivos">0</span>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center py-2">
+                    <span class="small text-muted"><i class="bi bi-clock-history me-1"></i>Plan 72hrs</span>
+                    <span class="fw-bold" style="color:var(--purple);" id="slaPlan72">0</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla Tickets Tarde -->
+        <div class="table-card">
+          <div class="table-card-header">
+            <h6>
+              <i class="bi bi-exclamation-diamond text-danger"></i>
+              Tickets Cerrados Tarde
+              <span class="badge bg-danger ms-1" id="countTarde">0</span>
+            </h6>
+            <button class="btn btn-outline-subtle btn-sm" onclick="exportarTicketsTarde()">
+              <i class="bi bi-download me-1"></i>Exportar
+            </button>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Folio</th>
+                  <th>Asunto</th>
+                  <th>Área</th>
+                  <th>Agente</th>
+                  <th>Ubicación</th>
+                  <th>Días Tarde</th>
+                  <th>F. Vencimiento</th>
+                  <th>F. Cierre</th>
+                </tr>
+              </thead>
+              <tbody id="tableTarde"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           TAB: POR UBICACIÓN
+           ========================================== -->
+      <div class="tab-pane fade" id="tabUbicacion">
+        <div class="row g-3 mb-3">
+          <div class="col-lg-6">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h6>Tickets por Ubicación</h6>
+                <small>Top 15 ubicaciones</small>
+              </div>
+              <div class="chart-body">
+                <div class="chart-wrapper chart-h-280">
+                  <canvas id="chartUbicacion"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h6>SLA por Ubicación</h6>
+                <small>A tiempo vs tarde por ubicación</small>
+              </div>
+              <div class="chart-body">
+                <div class="chart-wrapper chart-h-280">
+                  <canvas id="chartUbicacionSLA"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla por Ubicación -->
+        <div class="table-card">
+          <div class="table-card-header">
+            <h6><i class="bi bi-geo-alt text-primary"></i> Resumen por Ubicación</h6>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Ubicación</th>
+                  <th>Total</th>
+                  <th>Cerrados</th>
+                  <th>Activos</th>
+                  <th>A Tiempo</th>
+                  <th>Tarde</th>
+                  <th>Sin SLA</th>
+                  <th>En Curso</th>
+                  <th>Vencidos</th>
+                  <th>% SLA</th>
+                </tr>
+              </thead>
+              <tbody id="tableUbicacion"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           TAB: NOTAS
+           ========================================== -->
+      <div class="tab-pane fade" id="tabNotas">
+        <div class="row g-3 mb-3">
+          <div class="col-lg-6">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h6>Notas por Ubicación</h6>
+                <small>Actividad de seguimiento</small>
+              </div>
+              <div class="chart-body">
+                <div class="chart-wrapper chart-h-280">
+                  <canvas id="chartNotasUbicacion"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h6>Notas por Cliente</h6>
+                <small>Top 10 clientes con más comunicación</small>
+              </div>
+              <div class="chart-body">
+                <div class="chart-wrapper chart-h-280">
+                  <canvas id="chartNotasCliente"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="alert alert-light border shadow-sm small">
+          <i class="bi bi-info-circle text-primary me-2"></i>
+          Esta vista muestra la actividad de comunicación (notas/comentarios) agrupada por ubicación y cliente para identificar dónde se concentra el seguimiento.
+        </div>
+      </div>
+
+      <!-- ==========================================
+           TAB: RENDIMIENTO DE AGENTES
+           ========================================== -->
+      <div class="tab-pane fade" id="tabRendimiento">
+
+        <!-- KPIs de Rendimiento -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="venc-card text-center">
+              <div class="venc-val text-primary" id="rendTotalAgentes">0</div>
+              <div class="venc-label">Agentes con tickets</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="venc-card text-center">
+              <div class="venc-val text-success" id="rendPromedioSLA">0%</div>
+              <div class="venc-label">SLA Promedio</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="venc-card text-center">
+              <div class="venc-val text-warning" id="rendPromedioTickets">0</div>
+              <div class="venc-label">Tickets Promedio x Agente</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="venc-card text-center">
+              <div class="venc-val text-danger" id="rendAgentesCriticos">0</div>
+              <div class="venc-label">Agentes con SLA &lt; 70%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráficas -->
+        <div class="row g-3 mb-4">
+          <div class="col-lg-6">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h6>SLA por Agente</h6>
+                <small>% de tickets cerrados a tiempo por agente</small>
+              </div>
+              <div class="chart-body">
+                <div class="chart-wrapper chart-h-320">
+                  <canvas id="chartAgenteSLA"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h6>Carga vs Vencidos por Agente</h6>
+                <small>Total asignados vs vencidos activos</small>
+              </div>
+              <div class="chart-body">
+                <div class="chart-wrapper chart-h-320">
+                  <canvas id="chartAgenteVencidos"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla de Rendimiento -->
+        <div class="table-card">
+          <div class="table-card-header">
+            <h6>
+              <i class="bi bi-clipboard-data text-primary"></i>
+              Scorecard de Agentes
+            </h6>
+            <button class="btn btn-outline-subtle btn-sm" onclick="exportarRendimientoExcel()">
+              <i class="bi bi-download me-1"></i>Exportar
+            </button>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Agente</th>
+                  <th>Área</th>
+                  <th>Total</th>
+                  <th>Activos</th>
+                  <th>Cerrados</th>
+                  <th>A Tiempo</th>
+                  <th>Tarde</th>
+                  <th>Vencidos</th>
+                  <th>% SLA</th>
+                  <th>SLA Visual</th>
+                  <th>Prom. Hrs Resolución</th>
+                </tr>
+              </thead>
+              <tbody id="tableRendimiento"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           TAB: ANÁLISIS DE VENCIMIENTOS (GRANULAR)
+           ========================================== -->
+      <div class="tab-pane fade" id="tabVencimientos">
+
+        <!-- KPIs de Vencimiento -->
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-md-3">
+            <div class="venc-card text-center">
+              <div class="venc-val text-danger" id="vencTotalActivos">0</div>
+              <div class="venc-label">Vencidos Activos</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="venc-card text-center">
+              <div class="venc-val text-warning" id="vencPromDiasRetraso">0</div>
+              <div class="venc-label">Promedio Días Retraso</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="venc-card text-center">
+              <div class="venc-val text-danger" id="vencMaxDias">0</div>
+              <div class="venc-label">Máx. Días Vencido</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="venc-card text-center">
+              <div class="venc-val text-info" id="vencCerradosTarde">0</div>
+              <div class="venc-label">Cerrados Tarde (Historial)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráficas de vencimiento -->
+        <div class="row g-3 mb-4">
+          <div class="col-lg-4">
+            <div class="chart-card">
+              <div class="chart-header text-center">
+                <h6>Vencidos por Área</h6>
+                <small>Distribución actual</small>
+              </div>
+              <div class="chart-body justify-content-center">
+                <div class="chart-wrapper chart-h-240">
+                  <canvas id="chartVencArea"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="chart-card">
+              <div class="chart-header text-center">
+                <h6>Vencidos por Prioridad</h6>
+                <small>Riesgo por prioridad</small>
+              </div>
+              <div class="chart-body justify-content-center">
+                <div class="chart-wrapper chart-h-240">
+                  <canvas id="chartVencPrio"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="chart-card">
+              <div class="chart-header text-center">
+                <h6>Rango de Vencimiento</h6>
+                <small>Días desde que venció</small>
+              </div>
+              <div class="chart-body justify-content-center">
+                <div class="chart-wrapper chart-h-240">
+                  <canvas id="chartVencRango"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla detalle granular de vencidos -->
+        <div class="table-card">
+          <div class="table-card-header">
+            <h6>
+              <i class="bi bi-clock-history text-danger"></i>
+              Detalle de Tickets Vencidos
+              <span class="badge bg-danger ms-1" id="countVencidos">0</span>
+            </h6>
+            <button class="btn btn-outline-subtle btn-sm" onclick="exportarVencidosExcel()">
+              <i class="bi bi-download me-1"></i>Exportar Vencidos
+            </button>
+          </div>
+          <div class="table-scroll table-scroll-lg">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Folio</th>
+                  <th>Asunto</th>
+                  <th>Área</th>
+                  <th>Agente</th>
+                  <th>Ubicación</th>
+                  <th>Prioridad</th>
+                  <th>Estatus</th>
+                  <th>F. Creación</th>
+                  <th>F. Vencimiento</th>
+                  <th>Días Vencido</th>
+                  <th>Horas Retraso</th>
+                </tr>
+              </thead>
+              <tbody id="tableVencidos"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tabla cerrados tarde (historial) -->
+        <div class="table-card mt-3">
+          <div class="table-card-header">
+            <h6>
+              <i class="bi bi-exclamation-diamond text-warning"></i>
+              Historial: Cerrados Fuera de Tiempo
+              <span class="badge bg-warning text-dark ms-1" id="countCerradosTarde2">0</span>
+            </h6>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Folio</th>
+                  <th>Asunto</th>
+                  <th>Área</th>
+                  <th>Agente</th>
+                  <th>F. Vencimiento</th>
+                  <th>F. Cierre</th>
+                  <th>Días Tarde</th>
+                  <th>Horas Tarde</th>
+                </tr>
+              </thead>
+              <tbody id="tableCerradosTardeDetalle"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================
+         TABLA PRINCIPAL DE TICKETS
+         ======================================== -->
+<div class="table-card mt-4">
+  <div class="table-card-header">
+    <h6>
+      <i class="bi data-table text-primary"></i>
+      Detalle de Tickets
+      <span class="badge bg-secondary ms-1" id="totalFiltered">0</span>
+    </h6>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <input type="text" id="searchTable" class="form-control form-control-sm"
+             style="width:200px; font-size:0.8rem;"
+             placeholder="Buscar folio, asunto..."
+             onkeyup="STATE.page=1; renderizarTabla()">
+      <select id="rowsPerPage" class="form-select form-select-sm"
+              style="width:70px; font-size:0.8rem;"
+              onchange="STATE.page=1; renderizarTabla()">
+        <option value="10">10</option>
+        <option value="25" selected>25</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Filtros por columna -->
+  <div class="px-3 py-2 border-bottom bg-light d-flex gap-2 flex-wrap align-items-center">
+    <small class="text-muted fw-semibold me-1">Filtrar:</small>
+    <select id="colFiltroArea" class="form-select form-select-sm" style="width:130px; font-size:0.75rem;" onchange="STATE.page=1; renderizarTabla()">
+      <option value="">Todas las áreas</option>
+    </select>
+    <select id="colFiltroAgente" class="form-select form-select-sm" style="width:130px; font-size:0.75rem;" onchange="STATE.page=1; renderizarTabla()">
+      <option value="">Todos los agentes</option>
+    </select>
+    <select id="colFiltroEstatus" class="form-select form-select-sm" style="width:130px; font-size:0.75rem;" onchange="STATE.page=1; renderizarTabla()">
+      <option value="">Todos los estados</option>
+      <option value="Cerrado">Cerrado</option>
+      <option value="Resuelto">Resuelto</option>
+      <option value="Nuevo">Nuevo</option>
+      <option value="En Proceso">En Proceso</option>
+      <option value="Escalado">Escalado</option>
+    </select>
+    <select id="colFiltroPrioridad" class="form-select form-select-sm" style="width:120px; font-size:0.75rem;" onchange="STATE.page=1; renderizarTabla()">
+      <option value="">Todas las prioridades</option>
+      <option value="Alta">Alta</option>
+      <option value="Media">Media</option>
+      <option value="Baja">Baja</option>
+    </select>
+    <select id="colFiltroSLA" class="form-select form-select-sm" style="width:120px; font-size:0.75rem;" onchange="STATE.page=1; renderizarTabla()">
+      <option value="">Todo SLA</option>
+      <option value="aTiempo">✅ A tiempo</option>
+      <option value="tarde">❌ Tarde</option>
+      <option value="vencido">⚠ Vencido</option>
+      <option value="enCurso">En curso</option>
+    </select>
+    <button class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem;" onclick="limpiarFiltrosTabla()">
+      <i class="bi bi-x-circle me-1"></i>Limpiar
+    </button>
+  </div>
+
+  <div class="table-scroll table-scroll-lg" style="overflow-x:auto;">
+    <table class="data-table" style="min-width:900px; table-layout:fixed;">
+      <colgroup>
+        <col style="width:70px;">   <!-- Folio -->
+        <col style="width:220px;">  <!-- Asunto -->
+        <col style="width:110px;">  <!-- Área -->
+        <col style="width:110px;">  <!-- Agente -->
+        <col style="width:130px;">  <!-- Ubicación -->
+        <col style="width:90px;">   <!-- Prioridad -->
+        <col style="width:100px;">  <!-- Estatus -->
+        <col style="width:110px;">  <!-- SLA -->
+        <col style="width:60px;">   <!-- Días -->
+      </colgroup>
+      <thead>
+        <tr>
+          <th style="cursor:pointer;" onclick="sortTable('folio')">Folio <i class="bi bi-arrow-down-up" style="font-size:0.65rem;"></i></th>
+          <th>Asunto</th>
+          <th style="cursor:pointer;" onclick="sortTable('area')">Área <i class="bi bi-arrow-down-up" style="font-size:0.65rem;"></i></th>
+          <th>Agente</th>
+          <th>Ubicación</th>
+          <th style="cursor:pointer;" onclick="sortTable('prioridad')">Prioridad <i class="bi bi-arrow-down-up" style="font-size:0.65rem;"></i></th>
+          <th>Estatus</th>
+          <th>SLA</th>
+          <th style="cursor:pointer;" onclick="sortTable('dias')">Días <i class="bi bi-arrow-down-up" style="font-size:0.65rem;"></i></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <div class="p-3 border-top d-flex justify-content-between align-items-center">
+    <small class="text-muted" id="pageInfo">Mostrando 0-0 de 0</small>
+    <div class="btn-group btn-group-sm">
+      <button class="btn btn-outline-subtle" onclick="prevPage()" id="btnPrev" disabled>
+        <i class="bi bi-chevron-left"></i> Anterior
+      </button>
+      <button class="btn btn-outline-subtle" onclick="nextPage()" id="btnNext" disabled>
+        Siguiente <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+  </main>
+</div>
+
+<!-- ========================================
+     MODAL DETALLE
+     ======================================== -->
+<div class="modal fade" id="modalDetalle" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="mdFolio">Ticket Info</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div id="modalSpinner" class="text-center py-5">
+          <div class="spinner-border text-primary"></div>
+        </div>
+        <div id="modalData" style="display:none;">
+          <h5 id="mdTitulo" class="mb-4 fw-bold">...</h5>
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <small class="text-muted text-uppercase" style="font-size:0.68rem;">Solicitante</small>
+              <div id="mdSolicitante" class="fw-semibold text-primary">...</div>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted text-uppercase" style="font-size:0.68rem;">Asignado</small>
+              <div id="mdAsignado" class="fw-semibold">...</div>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted text-uppercase" style="font-size:0.68rem;">Área</small>
+              <div id="mdArea">...</div>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted text-uppercase" style="font-size:0.68rem;">Estatus</small>
+              <div><span id="mdEstatus" class="badge bg-secondary">...</span></div>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted text-uppercase" style="font-size:0.68rem;">Prioridad</small>
+              <div id="mdPrioridad">...</div>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted text-uppercase" style="font-size:0.68rem;">Vencimiento</small>
+              <div id="mdVencimiento">...</div>
+            </div>
+          </div>
+          <div class="bg-light p-3 rounded border">
+            <small class="text-muted text-uppercase d-block mb-1" style="font-size:0.68rem;">Descripción</small>
+            <div id="mdDescripcion" style="white-space:pre-wrap;" class="small">...</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================
+     SCRIPTS
+     ======================================== -->
+<script>
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
+const STATE = {
+  raw: [],
+  filtered: [],
+  resumen: {},
+  ticketsTarde: [],
+  charts: {},
+  page: 1,
+  limit: 25,
+  currentId: null
+};
+
+// ============================================================
+// COLOR MAP (idéntico al dashboard principal)
+// ============================================================
+const COLOR_MAP = {
+  'Nuevo': '#3b82f6',
+  'Abierto': '#0ea5e9',
+  'En Proceso': '#8b5cf6',
+  'En Cotización': '#f59e0b',
+  'Visita Programada': '#06b6d4',
+  'Escalado': '#ef4444',
+  'En Espera': '#6b7280',
+  'Cerrado': '#22c55e',
+  'Resuelto': '#10b981',
+  'Sin estatus': '#cbd5e1',
+  'Pendiente': '#94a3b8',
+  'Crítica': '#dc2626',
+  'Urgente': '#dc2626',
+  'Alta': '#f97316',
+  'Media': '#eab308',
+  'Baja': '#22c55e',
+  'Normal': '#3b82f6',
+  'Planeada': '#6b7280',
+  'Sin prioridad': '#cbd5e1',
+  'A Tiempo': '#22c55e',
+  'Vencido': '#ef4444'
+};
+
+const PALETTE = [
+  '#3b82f6', '#22c55e', '#8b5cf6', '#14b8a6',
+  '#f59e0b', '#ec4899', '#6366f1', '#f97316',
+  '#ef4444', '#64748b', '#06b6d4', '#84cc16'
+];
+
+// ============================================================
+// CHART.JS CONFIGURACIÓN GLOBAL
+// ============================================================
+Chart.defaults.font.family = "'Inter', -apple-system, sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#64748b';
+Chart.defaults.borderColor = '#e2e8f0';
+
+// Registrar plugin datalabels globalmente
+Chart.register(ChartDataLabels);
+
+// DESACTIVAR datalabels por defecto (activar solo donde queramos)
+Chart.defaults.plugins.datalabels = { display: false };
+
+// ============================================================
+// INICIALIZACIÓN
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  cargarDatos();
+});
+
+function setLoaderStatus(msg) {
+  const el = document.getElementById('loaderStatus');
+  if (el) el.textContent = msg;
+}
+
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebarOverlay');
+  sb.classList.toggle('open');
+  ov.classList.toggle('active');
+}
+
+// ============================================================
+// CARGA DE DATOS
+// ============================================================
+// Función para mostrar/ocultar inputs de fecha
+function toggleFechasPersonalizadas() {
+  const sel = document.getElementById('filtroPeriodo');
+  const div = document.getElementById('divFechasCustom');
+  
+  if (sel.value === 'custom') {
+    div.style.display = 'block';
+  } else {
+    div.style.display = 'none';
+    cargarDatos(); // Carga automática si no es custom
+  }
+}
+
+// Actualiza tu función cargarDatos para leer los inputs
+function cargarDatos() {
+  document.getElementById('loader').style.display = 'flex';
+  
+  const periodo = document.getElementById('filtroPeriodo').value;
+  // Obtener valores de fecha, si no existen los inputs, enviar vacío
+  const fIni = document.getElementById('fInicio') ? document.getElementById('fInicio').value : '';
+  const fFin = document.getElementById('fFin') ? document.getElementById('fFin').value : '';
+
+  google.script.run
+    .withSuccessHandler(json => {
+       // ... tu código de éxito ...
+       try {
+         const res = JSON.parse(json);
+         if (res.ok) {
+           STATE.raw = res.dataset || [];
+           STATE.resumen = res.resumen || {};
+           poblarFiltros(); 
+           aplicarFiltrosLocales();
+         } else {
+           alert("Error: " + res.error);
+         }
+       } catch(e) { console.error(e); }
+       document.getElementById('loader').style.display = 'none';
+    })
+    .getBIData_V17(periodo, fIni, fFin);
+}
+
+// ============================================================
+// FILTROS
+// ============================================================
+function poblarFiltros() {
+  const fillSelect = (id, key, labelAll) => {
+    const select = document.getElementById(id);
+    const current = select.value;
+    const values = [...new Set(STATE.raw.map(t => t[key] || '').filter(v => v && v !== 'N/A' && v !== 'Sin Ubicación' && v !== 'Sin Área'))]
+      .sort((a, b) => a.localeCompare(b, 'es'));
+
+    let html = '<option value="all">' + labelAll + '</option>';
+    values.forEach(val => {
+      html += '<option value="' + val.replace(/"/g, '&quot;') + '">' + val + '</option>';
+    });
+
+    select.innerHTML = html;
+    if (values.includes(current)) select.value = current;
+  };
+
+  fillSelect('filtroUbicacion', 'ubicacion', 'Todas las Ubicaciones');
+  fillSelect('filtroArea', 'area', 'Todas las Áreas');
+  fillSelect('filtroAgente', 'agente', 'Todos los Agentes');
+  fillSelect('filtroCliente', 'cliente', 'Todos los Usuarios');
+}
+
+function aplicarFiltrosLocales() {
+  const ubicacion = document.getElementById('filtroUbicacion').value;
+  const area = document.getElementById('filtroArea').value;
+  const agente = document.getElementById('filtroAgente').value;
+  const prioridad = document.getElementById('filtroPrioridad').value;
+  const estatus = document.getElementById('filtroEstatus').value;
+  const cliente = document.getElementById('filtroCliente').value;
+
+  STATE.filtered = STATE.raw.filter(t => {
+    if (ubicacion !== 'all' && (t.ubicacion || '') !== ubicacion) return false;
+    if (area !== 'all' && (t.area || '') !== area) return false;
+    if (agente !== 'all' && (t.agente || '') !== agente) return false;
+    if (cliente !== 'all' && (t.cliente || '') !== cliente) return false;
+
+    if (prioridad !== 'all') {
+      if (prioridad === 'plan72' && !t.esPlan72) return false;
+      if (prioridad === 'Alta' && !['Alta', 'Urgente', 'Crítica'].includes(t.prioridad)) return false;
+      if (prioridad === 'Media' && t.prioridad !== 'Media') return false;
+      if (prioridad === 'Baja' && t.prioridad !== 'Baja') return false;
+    }
+
+    if (estatus === 'abiertos' && t.esCerrado) return false;
+    if (estatus === 'cerrados' && !t.esCerrado) return false;
+    if (estatus === 'vencidos' && !t.estaVencido) return false;
+    if (estatus === 'aTiempo' && t.cerradoATiempo !== true) return false;
+    if (estatus === 'tarde' && t.cerradoATiempo !== false) return false;
+
+    return true;
+  });
+
+  updateFilterIndicator();
+  actualizarKPIs();
+  actualizarGraficas();
+  renderizarTablaTarde();
+  renderizarTablaUbicacion();
+  STATE.page = 1;
+  renderizarTabla();
+  // --- Después de STATE.filtered = ... y todos los filtros ---
+
+  // NUEVO: Llenar ticketsTarde con los cerrados tarde del período filtrado
+  STATE.ticketsTarde = STATE.filtered.filter(function(t) {
+    return t.esCerrado && t.cerradoATiempo === false;
+  }).sort(function(a, b) {
+    return (b.diasRetraso || 0) - (a.diasRetraso || 0);
+  });
+
+  // ── NUEVO: re-renderizar el tab que esté activo en este momento ──
+  const tabActivo = document.querySelector('.bi-tabs .nav-link.active');
+  if (tabActivo) {
+    const target = tabActivo.getAttribute('data-bs-target');
+    if (target === '#tabRendimiento')  renderTabRendimiento();
+    if (target === '#tabVencimientos') renderTabVencimientos();
+    if (target === '#tabSLA') {
+      const d = STATE.filtered;
+      const cerrados = d.filter(t => t.esCerrado);
+      const aTiempo  = cerrados.filter(t => t.cerradoATiempo === true).length;
+      const tarde    = cerrados.filter(t => t.cerradoATiempo === false).length;
+      renderSLADonut('chartSLACompliance', aTiempo, tarde);
+      const buckets = { '0-2 días': 0, '3-7 días': 0, '8-15 días': 0, '+15 días': 0 };
+      const now = new Date();
+      d.forEach(t => {
+        if (!t.esCerrado && t.fecha) {
+          const diff = Math.floor((now - new Date(t.fecha)) / (1000 * 60 * 60 * 24));
+          if (diff <= 2)       buckets['0-2 días']++;
+          else if (diff <= 7)  buckets['3-7 días']++;
+          else if (diff <= 15) buckets['8-15 días']++;
+          else                 buckets['+15 días']++;
+        }
+      });
+      renderDoughnutChart('chartAgeing', Object.keys(buckets), Object.values(buckets),
+        ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444']);
+    }
+    if (target === '#tabNotas') {
+      const d = STATE.filtered;
+      const notasUbic = {};
+      d.forEach(t => { const u = t.ubicacion || 'N/A'; notasUbic[u] = (notasUbic[u] || 0) + (t.cantidadNotas || 0); });
+      const nUS = Object.entries(notasUbic).filter(x => x[1] > 0).sort((a,b) => b[1]-a[1]).slice(0,10);
+      renderBarChart('chartNotasUbicacion', nUS.map(x => x[0]), nUS.map(x => x[1]), ['#6366f1'], 'y');
+      const notasCliente = {};
+      d.forEach(t => { const c = t.cliente || 'Sin Cliente'; notasCliente[c] = (notasCliente[c] || 0) + (t.cantidadNotas || 0); });
+      const nCS = Object.entries(notasCliente).filter(x => x[1] > 0).sort((a,b) => b[1]-a[1]).slice(0,10);
+      renderBarChart('chartNotasCliente', nCS.map(x => x[0]), nCS.map(x => x[1]), ['#ec4899'], 'y');
+    }
+  }
+
+}
+
+function updateFilterIndicator() {
+  var filters = [
+    document.getElementById('filtroUbicacion').value !== 'all' ? 'Ubicación' : null,
+    document.getElementById('filtroArea').value !== 'all' ? 'Área' : null,
+    document.getElementById('filtroAgente').value !== 'all' ? 'Agente' : null,
+    document.getElementById('filtroPrioridad').value !== 'all' ? 'Prioridad' : null,
+    document.getElementById('filtroEstatus').value !== 'all' ? 'Estado' : null,
+    document.getElementById('filtroCliente').value !== 'all' ? 'Cliente' : null
+  ].filter(Boolean);
+
+  var el = document.getElementById('filterIndicator');
+  var btnClear = document.getElementById('btnClearFilters');
+
+  if (filters.length === 0) {
+    el.textContent = 'Sin filtros';
+    el.className = 'filter-badge-none';
+    if (btnClear) btnClear.style.display = 'none';
+  } else {
+    el.textContent = filters.length + ' filtro' + (filters.length > 1 ? 's' : '') + ': ' + filters.join(', ');
+    el.className = 'filter-badge-active';
+    if (btnClear) btnClear.style.display = 'block';
+  }
+}
+
+// ============================================================
+// KPIs
+// ============================================================
+function actualizarKPIs() {
+  const d = STATE.filtered;
+  const total    = d.length;
+  const activos  = d.filter(t => !t.esCerrado && !t.estaVencido).length;
+  const vencidos = d.filter(t => t.estaVencido).length;
+  const cerrados = d.filter(t => t.esCerrado);
+  const aTiempo  = cerrados.filter(t => t.cerradoATiempo === true).length;
+  const tarde    = cerrados.filter(t => t.cerradoATiempo === false).length;
+  const plan72   = d.filter(t => t.esPlan72).length;
+
+// ✅ DESPUÉS — divide solo entre los que tienen FechaResolucion
+const cerradosConSLA = aTiempo + tarde;
+const pctATiempo = cerradosConSLA > 0 ? Math.round((aTiempo / cerradosConSLA) * 100) : null;
+const pctTarde   = cerradosConSLA > 0 ? Math.round((tarde   / cerradosConSLA) * 100) : null;
+
+  animateValue('kpiTotal',    total);
+  animateValue('kpiActivos',  activos);
+  animateValue('kpiVencidos', vencidos);
+  animateValue('kpiPlan72',   plan72);
+
+  // % A Tiempo
+  const kpiATiempoEl  = document.getElementById('kpiPctATiempo');
+  const subATiempoEl  = kpiATiempoEl.closest('.kpi-card').querySelector('.kpi-sub');
+  if (pctATiempo === null) {
+    kpiATiempoEl.textContent    = 'N/A';
+    kpiATiempoEl.style.color    = '#94a3b8';
+    subATiempoEl.textContent    = 'sin tickets cerrados';
+  } else {
+    kpiATiempoEl.textContent    = pctATiempo + '%';
+    kpiATiempoEl.style.color    = '';
+    subATiempoEl.textContent    = 'de cerrados';
+  }
+
+  // % Tarde
+  const kpiTardeEl   = document.getElementById('kpiPctTarde');
+  const subTardeEl   = kpiTardeEl.closest('.kpi-card').querySelector('.kpi-sub');
+  if (pctTarde === null) {
+    kpiTardeEl.textContent      = 'N/A';
+    kpiTardeEl.style.color      = '#94a3b8';
+    subTardeEl.textContent      = 'sin tickets cerrados';
+  } else {
+    kpiTardeEl.textContent      = pctTarde + '%';
+    kpiTardeEl.style.color      = '';
+    subTardeEl.textContent      = 'de cerrados';
+  }
+
+  // Vencidos sublabel
+  const subVencEl = document.getElementById('kpiVencidosSub');
+  if (vencidos === 0) {
+    subVencEl.textContent = '¡Sin tickets vencidos!';
+    subVencEl.className   = 'kpi-sub text-success fw-semibold';
+  } else {
+    subVencEl.textContent = 'requieren atención';
+    subVencEl.className   = 'kpi-sub';
+  }
+
+  // SLA Progress bar
+  const slaW = pctATiempo !== null ? pctATiempo : 0;
+  document.getElementById('slaProgressBar').style.width = slaW + '%';
+  document.getElementById('slaSummary').textContent     = aTiempo + ' a tiempo / ' + tarde + ' tarde';
+
+  // Panel numérico tab SLA
+  document.getElementById('slaTotalCerrados').textContent = cerrados.length;
+  document.getElementById('slaATiempo').textContent       = aTiempo;
+  document.getElementById('slaTarde').textContent         = tarde;
+  document.getElementById('slaVencidosActivos').textContent = vencidos;
+  document.getElementById('slaPlan72').textContent        = plan72;
+
+  // Donut central
+  const slaDonutPct = pctATiempo !== null ? pctATiempo : 0;
+  const pctEl = document.getElementById('slaDonutPct');
+  pctEl.textContent = pctATiempo !== null ? pctATiempo + '%' : 'N/A';
+  if (pctATiempo === null)     pctEl.style.color = '#94a3b8';
+  else if (pctATiempo >= 80)   pctEl.style.color = '#22c55e';
+  else if (pctATiempo >= 50)   pctEl.style.color = '#f59e0b';
+  else                         pctEl.style.color = '#ef4444';
+}
+
+function animateValue(elementId, targetValue) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  const current = parseInt(el.textContent.replace(/,/g, '')) || 0;
+  if (current === targetValue) { el.textContent = targetValue.toLocaleString(); return; }
+
+  const diff = targetValue - current;
+  const steps = 20;
+  const increment = diff / steps;
+  let step = 0;
+
+  const timer = setInterval(() => {
+    step++;
+    const val = step === steps ? targetValue : Math.round(current + increment * step);
+    el.textContent = val.toLocaleString();
+    if (step >= steps) clearInterval(timer);
+  }, 25);
+}
+
+// ============================================================
+// GRÁFICAS
+// ============================================================
+function actualizarGraficas() {
+  const d = STATE.filtered;
+
+  const groupBy = (arr, key) => arr.reduce((acc, item) => {
+    const k = item[key] || 'N/A';
+    acc[k] = (acc[k] || 0) + 1;
+    return acc;
+  }, {});
+
+  // 1. Áreas (Barras horizontales con valores)
+  const areaData = groupBy(d, 'area');
+  const areaSorted = Object.entries(areaData).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  renderBarChart('chartAreas', areaSorted.map(x => x[0]), areaSorted.map(x => x[1]), PALETTE, 'y');
+
+  // 2. Estatus (Doughnut con % y labels)
+  const statusData = groupBy(d, 'estatus');
+  const statusOrder = ['Nuevo', 'Abierto', 'En Proceso', 'En Cotización', 'Visita Programada', 'Escalado', 'En Espera', 'Cerrado', 'Resuelto'];
+  const statusLabels = Object.keys(statusData).sort((a, b) => {
+    let ia = statusOrder.indexOf(a); if (ia === -1) ia = 99;
+    let ib = statusOrder.indexOf(b); if (ib === -1) ib = 99;
+    return ia - ib;
+  });
+  const statusValues = statusLabels.map(l => statusData[l]);
+  const statusColors = statusLabels.map(l => COLOR_MAP[l] || '#cbd5e1');
+  renderDoughnutChart('chartEstatus', statusLabels, statusValues, statusColors);
+
+  // 3. Agentes (Barras horizontales)
+  const agenteData = groupBy(d, 'agente');
+  const agenteSorted = Object.entries(agenteData).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  renderBarChart('chartAgentes', agenteSorted.map(x => x[0]), agenteSorted.map(x => x[1]), ['#14b8a6'], 'y');
+
+  // 4. Día de Semana (Barras verticales)
+  const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const weekData = new Array(7).fill(0);
+  d.forEach(t => {
+    if (t.fecha) {
+      const day = new Date(t.fecha).getDay();
+      if (!isNaN(day)) weekData[day]++;
+    }
+  });
+  renderBarChart('chartWeek', days, weekData, ['#8b5cf6'], 'x');
+
+  // 5. Prioridad (Doughnut)
+  const prioData = groupBy(d, 'prioridad');
+  const prioOrder = ['Crítica', 'Urgente', 'Alta', 'Media', 'Baja', 'Normal', 'Planeada'];
+  const prioLabels = Object.keys(prioData).sort((a, b) => {
+    let ia = prioOrder.indexOf(a); if (ia === -1) ia = 99;
+    let ib = prioOrder.indexOf(b); if (ib === -1) ib = 99;
+    return ia - ib;
+  });
+  const prioValues = prioLabels.map(l => prioData[l]);
+  const prioColors = prioLabels.map(l => COLOR_MAP[l] || '#cbd5e1');
+  renderDoughnutChart('chartPrioridad', prioLabels, prioValues, prioColors);
+
+  // 6. SLA Compliance (Donut - tab SLA)
+  const cerrados = d.filter(t => t.esCerrado);
+  const aTiempo = cerrados.filter(t => t.cerradoATiempo === true).length;
+  const tarde = cerrados.filter(t => t.cerradoATiempo === false).length;
+  renderSLADonut('chartSLACompliance', aTiempo, tarde);
+
+  // 7. Antigüedad Backlog (Doughnut)
+  const buckets = { '0-2 días': 0, '3-7 días': 0, '8-15 días': 0, '+15 días': 0 };
+  const now = new Date();
+  d.forEach(t => {
+    if (!t.esCerrado && t.fecha) {
+      const diff = Math.floor((now - new Date(t.fecha)) / (1000 * 60 * 60 * 24));
+      if (diff <= 2) buckets['0-2 días']++;
+      else if (diff <= 7) buckets['3-7 días']++;
+      else if (diff <= 15) buckets['8-15 días']++;
+      else buckets['+15 días']++;
+    }
+  });
+  renderDoughnutChart('chartAgeing',
+    Object.keys(buckets), Object.values(buckets),
+    ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444']
+  );
+
+  // 8. Ubicación (Barras)
+  const ubicData = groupBy(d, 'ubicacion');
+  const ubicSorted = Object.entries(ubicData).sort((a, b) => b[1] - a[1]).slice(0, 15);
+  renderBarChart('chartUbicacion', ubicSorted.map(x => x[0]), ubicSorted.map(x => x[1]), PALETTE, 'y');
+
+  // 9. SLA por Ubicación (Stacked)
+  renderStackedUbicacionSLA();
+
+  // 10. Notas por Ubicación
+  const notasUbic = {};
+  d.forEach(t => {
+    const u = t.ubicacion || 'N/A';
+    notasUbic[u] = (notasUbic[u] || 0) + (t.cantidadNotas || 0);
+  });
+  const nUbicSorted = Object.entries(notasUbic).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  renderBarChart('chartNotasUbicacion', nUbicSorted.map(x => x[0]), nUbicSorted.map(x => x[1]), ['#6366f1'], 'y');
+
+  // 11. Notas por Cliente
+  const notasCliente = {};
+  d.forEach(t => {
+    const c = t.cliente || 'Sin Cliente';
+    notasCliente[c] = (notasCliente[c] || 0) + (t.cantidadNotas || 0);
+  });
+  const nClSorted = Object.entries(notasCliente).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  renderBarChart('chartNotasCliente', nClSorted.map(x => x[0]), nClSorted.map(x => x[1]), ['#ec4899'], 'y');
+}
+
+// ============================================================
+// RENDER HELPERS - Charts con labels visibles
+// ============================================================
+
+/**
+ * Destruir chart existente si hay
+ */
+function destroyChart(id) {
+  if (STATE.charts[id] && typeof STATE.charts[id].destroy === 'function') {
+    STATE.charts[id].destroy();
+    STATE.charts[id] = null;
+  }
+}
+
+/**
+ * Bar Chart (horizontal o vertical) con valores en las barras
+ */
+function renderBarChart(id, labels, data, colors, axis) {
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+
+  const isHorizontal = axis === 'y';
+  const singleColor = colors.length === 1;
+  const bgColors = singleColor ? colors[0] : labels.map((_, i) => colors[i % colors.length]);
+
+  STATE.charts[id] = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: bgColors,
+        borderRadius: 5,
+        barPercentage: 0.7,
+        categoryPercentage: 0.85
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: axis,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1e293b',
+          titleColor: '#fff',
+          bodyColor: '#fff',
+          padding: 10,
+          cornerRadius: 6,
+          bodyFont: { size: 12 },
+          callbacks: {
+            label: function(ctx) {
+              const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+              const pct = total > 0 ? Math.round((ctx.parsed[isHorizontal ? 'x' : 'y'] / total) * 100) : 0;
+              return ctx.parsed[isHorizontal ? 'x' : 'y'] + ' tickets (' + pct + '%)';
+            }
+          }
+        },
+        datalabels: {
+          display: true,
+          color: '#64748b',
+          font: { size: 10, weight: '600' },
+          anchor: 'end',
+          align: isHorizontal ? 'right' : 'top',
+          offset: 4,
+          formatter: function(value) {
+            return value > 0 ? value : '';
+          }
+        }
+      },
+      scales: {
+        x: {
+          display: !isHorizontal,
+          grid: { display: false },
+          ticks: {
+            font: { size: 10 },
+            maxRotation: 45,
+            minRotation: 0,
+            autoSkip: false,
+            callback: function(value) {
+              const label = this.getLabelForValue(value);
+              return label && label.length > 14 ? label.substring(0, 12) + '…' : label;
+            }
+          }
+        },
+        y: {
+          display: isHorizontal,
+          beginAtZero: true,
+          grid: { color: '#f1f5f9', drawBorder: false },
+          ticks: {
+            font: { size: 10 },
+            callback: function(value) {
+              const label = this.getLabelForValue(value);
+              return label && label.length > 20 ? label.substring(0, 18) + '…' : label;
+            }
+          }
+        }
+      },
+      layout: {
+        padding: { right: isHorizontal ? 35 : 0, top: !isHorizontal ? 20 : 0 }
+      }
+    }
+  });
+}
+
+/**
+ * Doughnut Chart con generateLabels mostrando valor + porcentaje
+ */
+function renderDoughnutChart(id, labels, data, colors) {
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+
+  const total = data.reduce((a, b) => a + b, 0);
+
+  STATE.charts[id] = new Chart(ctx.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: colors,
+        borderWidth: 0,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '60%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            usePointStyle: true,
+            pointStyle: 'circle',
+            boxWidth: 8,
+            padding: 8,
+            font: { size: 10 },
+            generateLabels: function(chart) {
+              const ds = chart.data;
+              if (!ds.labels.length) return [];
+              return ds.labels.map(function(label, i) {
+                const val = ds.datasets[0].data[i];
+                const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                let displayLabel = label.length > 15 ? label.substring(0, 13) + '…' : label;
+                return {
+                  text: displayLabel + ': ' + val + ' (' + pct + '%)',
+                  fillStyle: ds.datasets[0].backgroundColor[i],
+                  strokeStyle: ds.datasets[0].backgroundColor[i],
+                  hidden: false,
+                  index: i
+                };
+              });
+            }
+          }
+        },
+        tooltip: {
+          backgroundColor: '#1e293b',
+          padding: 10,
+          cornerRadius: 6,
+          callbacks: {
+            label: function(context) {
+              const pct = total > 0 ? Math.round((context.parsed / total) * 100) : 0;
+              return context.label + ': ' + context.parsed + ' (' + pct + '%)';
+            }
+          }
+        },
+        datalabels: {
+          display: function(context) {
+            const val = context.dataset.data[context.dataIndex];
+            return total > 0 && (val / total) >= 0.05; // Solo mostrar si >= 5%
+          },
+          color: '#fff',
+          font: { size: 10, weight: 'bold' },
+          formatter: function(value) {
+            const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+            return pct + '%';
+          }
+        }
+      }
+    }
+  });
+}
+
+/**
+ * SLA Donut (especial con centro label)
+ */
+function renderSLADonut(id, aTiempo, tarde) {
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+
+  const total = aTiempo + tarde;
+  const hasData = total > 0;
+
+  STATE.charts[id] = new Chart(ctx.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['A Tiempo', 'Tarde'],
+      datasets: [{
+        data: hasData ? [aTiempo, tarde] : [1, 0],
+        backgroundColor: hasData ? ['#22c55e', '#ef4444'] : ['#e2e8f0', '#e2e8f0'],
+        borderWidth: 0,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '70%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            usePointStyle: true,
+            pointStyle: 'circle',
+            padding: 12,
+            font: { size: 10 },
+            generateLabels: function(chart) {
+              const ds = chart.data;
+              return ds.labels.map(function(label, i) {
+                const val = hasData ? ds.datasets[0].data[i] : 0;
+                const bg = hasData ? ds.datasets[0].backgroundColor[i] : '#94a3b8';
+                return {
+                  text: label + ': ' + val,
+                  fillStyle: bg,
+                  strokeStyle: bg,
+                  hidden: false,
+                  index: i
+                };
+              });
+            }
+          }
+        },
+        tooltip: {
+          enabled: hasData,
+          backgroundColor: '#1e293b',
+          padding: 10,
+          cornerRadius: 6,
+          callbacks: {
+            label: function(context) {
+              const pct = total > 0 ? Math.round((context.parsed / total) * 100) : 0;
+              return context.label + ': ' + context.parsed + ' (' + pct + '%)';
+            }
+          }
+        },
+        datalabels: { display: false }
+      }
+    }
+  });
+}
+
+function renderStackedUbicacionSLA() {
+  destroyChart('chartUbicacionSLA');
+  const ctx = document.getElementById('chartUbicacionSLA');
+  if (!ctx) return;
+
+  const ubicaciones = {};
+  STATE.filtered.forEach(t => {
+    const u = t.ubicacion || 'N/A';
+    // Agregamos "activos: 0" al objeto inicial
+    if (!ubicaciones[u]) ubicaciones[u] = { aTiempo: 0, tarde: 0, activos: 0, total: 0 };
+    ubicaciones[u].total++;
+    if (t.esCerrado) {
+      if (t.cerradoATiempo === true) ubicaciones[u].aTiempo++;
+      if (t.cerradoATiempo === false) ubicaciones[u].tarde++;
+    } else {
+      // Si no está cerrado, sumamos a activos
+      ubicaciones[u].activos++;
+    }
+  });
+
+  const sorted = Object.entries(ubicaciones)
+    // Cambiamos el filtro para mostrar TODAS las ubicaciones que tengan tickets (cerrados o activos)
+    .filter(x => x[1].total > 0)
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, 10);
+
+  STATE.charts['chartUbicacionSLA'] = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: sorted.map(x => x[0]),
+      datasets: [
+        {
+          label: 'A Tiempo',
+          data: sorted.map(x => x[1].aTiempo),
+          backgroundColor: '#22c55e',
+          borderRadius: 3
+        },
+        {
+          label: 'Tarde',
+          data: sorted.map(x => x[1].tarde),
+          backgroundColor: '#ef4444',
+          borderRadius: 3
+        },
+        {
+          // Nueva barra para tickets que aún no se resuelven
+          label: 'Activos',
+          data: sorted.map(x => x[1].activos),
+          backgroundColor: '#f59e0b',
+          borderRadius: 3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 8, font: { size: 10 } }
+        },
+        tooltip: {
+          backgroundColor: '#1e293b',
+          padding: 10,
+          cornerRadius: 6
+        },
+        datalabels: {
+          display: function(context) {
+            return context.dataset.data[context.dataIndex] > 0;
+          },
+          color: '#fff',
+          font: { size: 9, weight: 'bold' },
+          anchor: 'center',
+          align: 'center'
+        }
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: {
+          stacked: true,
+          grid: { color: '#f1f5f9', drawBorder: false },
+          ticks: {
+            font: { size: 10 },
+            callback: function(value) {
+              const label = this.getLabelForValue(value);
+              return label && label.length > 22 ? label.substring(0, 20) + '…' : label;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+// TABLAS
+// ============================================================
+function renderizarTablaTarde() {
+  const tbody = document.getElementById('tableTarde');
+  const ubicacion = document.getElementById('filtroUbicacion').value;
+  const area = document.getElementById('filtroArea').value;
+
+  const ticketsTarde = STATE.ticketsTarde.filter(t => {
+    if (ubicacion !== 'all' && (t.ubicacion || '') !== ubicacion) return false;
+    if (area !== 'all' && (t.area || '') !== area) return false;
+    return true;
+  });
+
+  document.getElementById('countTarde').textContent = ticketsTarde.length;
+
+  if (ticketsTarde.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No hay tickets cerrados tarde en este período</td></tr>';
+    return;
+  }
+
+  const fmtDate = d => d ? new Date(d).toLocaleDateString('es-MX') : '-';
+
+  tbody.innerHTML = ticketsTarde.slice(0, 50).map(t => `
+    <tr onclick="verDetalle('${t.id}')">
+      <td class="fw-bold text-dark">#${t.folio}</td>
+      <td>${(t.titulo || '-').substring(0, 50)}</td>
+      <td>${t.area || '-'}</td>
+      <td>${t.agente || '-'}</td>
+      <td>${t.ubicacion || '-'}</td>
+      <td class="fw-bold text-danger">${t.diasRetraso} días</td>
+      <td class="small text-muted">${fmtDate(t.vencimiento)}</td>
+      <td class="small text-muted">${fmtDate(t.fechaCierre)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderizarTablaUbicacion() {
+  const tbody = document.getElementById('tableUbicacion');
+  const ubicaciones = {};
+
+  STATE.filtered.forEach(t => {
+    const u = t.ubicacion || 'Sin Ubicación';
+    if (!ubicaciones[u]) ubicaciones[u] = { total: 0, activos: 0, cerrados: 0, vencidos: 0, aTiempo: 0, tarde: 0, sinSLA: 0 };
+    ubicaciones[u].total++;
+    
+    if (t.esCerrado) {
+      ubicaciones[u].cerrados++;
+      if (t.cerradoATiempo === true) ubicaciones[u].aTiempo++;
+      else if (t.cerradoATiempo === false) ubicaciones[u].tarde++;
+      else ubicaciones[u].sinSLA++; 
+    } else {
+      ubicaciones[u].activos++;
+      if (t.estaVencido) ubicaciones[u].vencidos++;
+    }
+  });
+
+  const sorted = Object.entries(ubicaciones).sort((a, b) => b[1].total - a[1].total);
+
+  if (sorted.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-muted">Sin datos</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = sorted.map(([ubic, d]) => {
+    const conSLA = d.aTiempo + d.tarde;
+    const pctSLA = conSLA > 0 ? Math.round((d.aTiempo / conSLA) * 100) : '-';
+    const slaClass = pctSLA === '-' ? '' : pctSLA >= 80 ? 'text-success' : pctSLA >= 50 ? 'text-warning' : 'text-danger';
+    
+    return `
+      <tr>
+        <td class="fw-semibold">${ubic}</td>
+        <td class="fw-bold">${d.total}</td>
+        <td class="text-success fw-semibold">${d.cerrados}</td>
+        <td class="text-warning fw-semibold">${d.activos}</td>
+        
+        <td><span class="badge-sla-ok">${d.aTiempo}</span></td>
+        <td><span class="badge-sla-late">${d.tarde}</span></td>
+        <td class="text-muted small fw-bold">${d.sinSLA > 0 ? d.sinSLA : '-'}</td>
+        <td><span class="badge-neutral">${d.activos}</span></td> <td class="text-danger fw-semibold">${d.vencidos}</td>
+        <td class="fw-bold ${slaClass}">${pctSLA}${pctSLA !== '-' ? '%' : ''}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Estado de ordenamiento
+STATE.sortCol = null;
+STATE.sortDir = 1;
+
+function sortTable(col) {
+  if (STATE.sortCol === col) {
+    STATE.sortDir *= -1;
+  } else {
+    STATE.sortCol = col;
+    STATE.sortDir = 1;
+  }
+  STATE.page = 1;
+  renderizarTabla();
+}
+
+function limpiarFiltrosTabla() {
+  document.getElementById('colFiltroArea').value     = '';
+  document.getElementById('colFiltroAgente').value   = '';
+  document.getElementById('colFiltroEstatus').value  = '';
+  document.getElementById('colFiltroPrioridad').value= '';
+  document.getElementById('colFiltroSLA').value      = '';
+  document.getElementById('searchTable').value       = '';
+  STATE.page = 1;
+  renderizarTabla();
+}
+
+// Poblar selects de columna cuando se cargan datos
+function poblarFiltrosTabla() {
+  const areas   = [...new Set(STATE.filtered.map(t => t.area   || '').filter(Boolean))].sort();
+  const agentes = [...new Set(STATE.filtered.map(t => (t.agente||'').split('@')[0]).filter(Boolean))].sort();
+
+  const fillSelect = (id, valores, placeholder) => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">${placeholder}</option>` +
+      valores.map(v => `<option value="${v}">${v}</option>`).join('');
+    if (valores.includes(cur)) sel.value = cur;
+  };
+
+  fillSelect('colFiltroArea',   areas,   'Todas las áreas');
+  fillSelect('colFiltroAgente', agentes, 'Todos los agentes');
+}
+
+function renderizarTabla() {
+  poblarFiltrosTabla();
+
+  const search      = (document.getElementById('searchTable').value || '').toLowerCase();
+  const filtArea    = document.getElementById('colFiltroArea').value;
+  const filtAgente  = document.getElementById('colFiltroAgente').value;
+  const filtEstatus = document.getElementById('colFiltroEstatus').value;
+  const filtPrio    = document.getElementById('colFiltroPrioridad').value;
+  const filtSLA     = document.getElementById('colFiltroSLA').value;
+  const limit       = parseInt(document.getElementById('rowsPerPage').value);
+  STATE.limit       = limit;
+
+  let filtered = STATE.filtered.filter(t => {
+    if (search && !(
+      String(t.folio).toLowerCase().includes(search) ||
+      String(t.titulo).toLowerCase().includes(search) ||
+      String(t.agente).toLowerCase().includes(search) ||
+      String(t.area).toLowerCase().includes(search) ||
+      String(t.ubicacion).toLowerCase().includes(search)
+    )) return false;
+
+    if (filtArea   && (t.area    || '') !== filtArea)                        return false;
+    if (filtAgente && (t.agente  || '').split('@')[0] !== filtAgente)        return false;
+    if (filtEstatus&& (t.estatus || '') !== filtEstatus)                     return false;
+    if (filtPrio   && (t.prioridad || '') !== filtPrio)                      return false;
+    if (filtSLA) {
+      if (filtSLA === 'aTiempo' && t.cerradoATiempo !== true)  return false;
+      if (filtSLA === 'tarde'   && t.cerradoATiempo !== false) return false;
+      if (filtSLA === 'vencido' && !t.estaVencido)             return false;
+      if (filtSLA === 'enCurso' && (t.esCerrado || t.estaVencido)) return false;
+    }
+    return true;
+  });
+
+  // Ordenamiento
+  if (STATE.sortCol) {
+    const now = new Date();
+    filtered.sort((a, b) => {
+      let va, vb;
+      if (STATE.sortCol === 'folio')    { va = Number(a.folio||0);    vb = Number(b.folio||0); }
+      if (STATE.sortCol === 'area')     { va = a.area||'';            vb = b.area||''; }
+      if (STATE.sortCol === 'prioridad'){ va = a.prioridad||'';       vb = b.prioridad||''; }
+      if (STATE.sortCol === 'dias')     {
+        va = a.fecha ? Math.floor((now - new Date(a.fecha)) / 86400000) : 0;
+        vb = b.fecha ? Math.floor((now - new Date(b.fecha)) / 86400000) : 0;
+      }
+      if (va < vb) return -1 * STATE.sortDir;
+      if (va > vb) return  1 * STATE.sortDir;
+      return 0;
+    });
+  }
+
+  const total  = filtered.length;
+  const start  = (STATE.page - 1) * limit;
+  const pageData = filtered.slice(start, start + limit);
+  const tbody  = document.getElementById('tableBody');
+  const now    = new Date();
+
+  document.getElementById('totalFiltered').textContent = total;
+
+  if (pageData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No hay datos que coincidan</td></tr>';
+  } else {
+    tbody.innerHTML = pageData.map(t => {
+      const days      = t.fecha ? Math.floor((now - new Date(t.fecha)) / 86400000) : '-';
+      const prioColor = COLOR_MAP[t.prioridad] || '#64748b';
+      const agNombre  = (t.agente || '-').split('@')[0];
+
+      // Truncar con tooltip
+      const tituloCorto = (t.titulo || '-').length > 35
+        ? (t.titulo.substring(0, 33) + '…')
+        : (t.titulo || '-');
+      const areaCorta   = (t.area || '-').length > 14
+        ? (t.area.substring(0, 12) + '…')
+        : (t.area || '-');
+      const ubicCorta   = (t.ubicacion || '-').length > 18
+        ? (t.ubicacion.substring(0, 16) + '…')
+        : (t.ubicacion || '-');
+
+      let slaBadge = '';
+      if (t.esCerrado) {
+        slaBadge = t.cerradoATiempo
+          ? '<span class="badge-sla-ok">✓ A tiempo</span>'
+          : `<span class="badge-sla-late">✗ ${t.diasRetraso||''}d tarde</span>`;
+      } else if (t.estaVencido) {
+        slaBadge = `<span class="badge-sla-warn">⚠ ${t.diasRetraso||''}d</span>`;
+      } else {
+        slaBadge = '<span class="badge-neutral">En curso</span>';
+      }
+
+      return `<tr onclick="verDetalle('${t.id}')" style="cursor:pointer;">
+        <td class="fw-bold text-dark">#${t.folio}</td>
+        <td title="${(t.titulo||'').replace(/"/g,'&quot;')}" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px;">${tituloCorto}</td>
+        <td title="${t.area||''}" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${areaCorta}</td>
+        <td style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${agNombre}</td>
+        <td title="${t.ubicacion||''}" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${ubicCorta}</td>
+        <td><span style="color:${prioColor}; font-weight:600;">${t.prioridad||'-'}</span></td>
+        <td><span class="badge-neutral" style="white-space:nowrap;">${t.estatus}</span></td>
+        <td>${slaBadge}</td>
+        <td class="text-muted small">${days}d</td>
+      </tr>`;
+    }).join('');
+  }
+
+  const end = Math.min(start + limit, total);
+  document.getElementById('pageInfo').textContent =
+    `Mostrando ${total > 0 ? start + 1 : 0}–${end} de ${total}`;
+  document.getElementById('btnPrev').disabled = STATE.page <= 1;
+  document.getElementById('btnNext').disabled = end >= total;
+}
+
+function prevPage() {
+  if (STATE.page > 1) { STATE.page--; renderizarTabla(); }
+}
+
+function nextPage() {
+  STATE.page++;
+  renderizarTabla();
+}
+
+// ============================================================
+// MODAL DETALLE
+// ============================================================
+function verDetalle(id) {
+  STATE.currentId = id;
+  const modal = new bootstrap.Modal(document.getElementById('modalDetalle'));
+  document.getElementById('modalData').style.display = 'none';
+  document.getElementById('modalSpinner').style.display = 'block';
+  modal.show();
+
+  google.script.run
+    .withSuccessHandler(res => {
+      if (res.ok) {
+        const d = res.data;
+        document.getElementById('mdFolio').textContent = 'Ticket #' + d.folio;
+        document.getElementById('mdTitulo').textContent = d.titulo;
+        document.getElementById('mdSolicitante').textContent = d.solicitante;
+        document.getElementById('mdAsignado').textContent = d.asignado;
+        document.getElementById('mdArea').textContent = d.area;
+        document.getElementById('mdEstatus').textContent = d.estatus;
+        document.getElementById('mdPrioridad').textContent = d.prioridad;
+        document.getElementById('mdVencimiento').textContent = d.vencimiento;
+        document.getElementById('mdDescripcion').textContent = d.descripcion || 'Sin descripción';
+        document.getElementById('modalSpinner').style.display = 'none';
+        document.getElementById('modalData').style.display = 'block';
+      }
+    })
+    .withFailureHandler(() => { alert('Error al cargar detalle'); })
+    .getTicketDetail(id);
+}
+
+function abrirEnSistema() {
+  if (STATE.currentId) {
+    google.script.run
+      .withSuccessHandler(function(url) {
+        if (url) {
+          var fullUrl = url + '?view=ticket&id=' + encodeURIComponent(STATE.currentId);
+          window.open(fullUrl, '_blank');
+        }
+      })
+      .withFailureHandler(function() {
+        alert('No se pudo obtener la URL del sistema.');
+      })
+      .getAppUrl();
+  }
+}
+
+
+// ============================================================================
+// HELPER (ya usado arriba, agregar si no existe)
+// ============================================================================
+function setText(id, val) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// 4C. JS — Funciones de Rendimiento de Agentes:
+
+function renderTabRendimiento() {
+  var d = STATE.filtered;
+  var agentes = {};
+  var ahora = new Date();
+
+  d.forEach(function(t) {
+    var ag = t.agente || 'Sin asignar';
+    if (!agentes[ag]) {
+      agentes[ag] = {
+        nombre: ag,
+        area: t.area || '',
+        total: 0,
+        activos: 0,
+        cerrados: 0,
+        aTiempo: 0,
+        tarde: 0,
+        vencidos: 0,
+        horasResolucion: []
+      };
+    }
+    var a = agentes[ag];
+    a.total++;
+
+    if (t.esCerrado) {
+      a.cerrados++;
+      if (t.cerradoATiempo === true) a.aTiempo++;
+      if (t.cerradoATiempo === false) a.tarde++;
+
+      // Calcular horas de resolución
+      if (t.fecha && t.fechaCierre) {
+        var hrs = (new Date(t.fechaCierre) - new Date(t.fecha)) / (1000 * 60 * 60);
+        if (hrs > 0 && hrs < 720) a.horasResolucion.push(hrs);
+      }
+    } else {
+      a.activos++;
+      if (t.estaVencido) a.vencidos++;
+    }
+  });
+
+  var lista = Object.values(agentes).sort(function(a, b) { return b.total - a.total; });
+
+  // KPIs
+  var totalAgentes = lista.filter(function(a) { return a.nombre !== 'Sin asignar'; }).length;
+  var slaSum = 0, slaCount = 0;
+  var criticos = 0;
+  lista.forEach(function(a) {
+  var conSLA = a.aTiempo + a.tarde;
+  if (conSLA > 0) {
+    var sla = Math.round((a.aTiempo / conSLA) * 100);
+    slaSum += sla;
+    slaCount++;
+    if (sla < 70) criticos++;
+  }
+});
+  var promedioSLA = slaCount > 0 ? Math.round(slaSum / slaCount) : 0;
+  // DESPUÉS — promedio real de tickets por agente basado en los datos del scorecard
+var promedioTickets = lista.length > 0
+  ? Math.round(lista.reduce(function(sum, a) { return sum + a.total; }, 0) / lista.length)
+  : 0;
+
+  setText('rendTotalAgentes', totalAgentes);
+  setText('rendPromedioSLA', promedioSLA + '%');
+  setText('rendPromedioTickets', promedioTickets);
+  setText('rendAgentesCriticos', criticos);
+
+  // Color del SLA promedio
+  var slaEl = document.getElementById('rendPromedioSLA');
+  if (slaEl) {
+    slaEl.className = 'venc-val ' + (promedioSLA >= 80 ? 'text-success' : promedioSLA >= 60 ? 'text-warning' : 'text-danger');
+  }
+
+  // Gráfica SLA por Agente (Barras horizontales)
+ var top15 = lista.filter(function(a) {
+  return (a.aTiempo + a.tarde) > 0 && a.nombre !== 'Sin asignar';
+}).slice(0, 15);
+
+var slaLabels = top15.map(function(a) { return a.nombre; });
+
+var slaValues = top15.map(function(a) {
+  var conSLA = a.aTiempo + a.tarde;
+  return Math.round((a.aTiempo / conSLA) * 100);
+});
+
+var slaColors = slaValues.map(function(v) {
+  return v >= 85 ? '#22c55e' : v >= 70 ? '#f59e0b' : '#ef4444';
+});
+
+renderCustomBarChart('chartAgenteSLA', slaLabels, slaValues, slaColors, 'y', '%', 100);
+
+
+  // Gráfica Carga vs Vencidos (Stacked)
+  renderAgenteVencidosChart(lista.filter(function(a) { return a.nombre !== 'Sin asignar'; }).slice(0, 12));
+
+  // Tabla
+  var tbody = document.getElementById('tableRendimiento');
+  if (!tbody) return;
+
+  if (lista.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" class="text-center py-4 text-muted">Sin datos de agentes</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = lista.map(function(a) {
+    var conSLA = a.aTiempo + a.tarde;
+    var sla = conSLA > 0 ? Math.round((a.aTiempo / conSLA) * 100) : null;
+    var slaClass = sla === null ? '' : sla >= 80 ? 'text-success' : sla >= 60 ? 'text-warning' : 'text-danger';
+    var slaText = sla !== null ? sla + '%' : '—';
+
+    var barColor = sla === null ? '#e2e8f0' : sla >= 80 ? '#22c55e' : sla >= 60 ? '#f59e0b' : '#ef4444';
+    var barWidth = sla !== null ? sla : 0;
+
+    // Promedio horas
+    var promHrs = '—';
+    if (a.horasResolucion.length > 0) {
+      var sum = a.horasResolucion.reduce(function(x, y) { return x + y; }, 0);
+      var avg = sum / a.horasResolucion.length;
+      promHrs = avg >= 24 ? (avg / 24).toFixed(1) + 'd' : avg.toFixed(0) + 'h';
+    }
+
+    return '<tr>' +
+      '<td class="fw-semibold">' + esc(a.nombre) + '</td>' +
+      '<td>' + esc(a.area) + '</td>' +
+      '<td class="fw-bold">' + a.total + '</td>' +
+      '<td class="text-warning">' + a.activos + '</td>' +
+      '<td>' + a.cerrados + '</td>' +
+      '<td class="text-success">' + a.aTiempo + '</td>' +
+      '<td class="text-danger">' + a.tarde + '</td>' +
+      '<td class="' + (a.vencidos > 0 ? 'fw-bold text-danger' : '') + '">' + a.vencidos + '</td>' +
+      '<td class="fw-bold ' + slaClass + '">' + slaText + '</td>' +
+      '<td><div class="perf-bar"><div class="perf-bar-fill" style="width:' + barWidth + '%; background:' + barColor + ';"></div></div></td>' +
+      '<td class="text-muted small">' + promHrs + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+function renderCustomBarChart(id, labels, data, colors, axis, suffix, maxVal) {
+  destroyChart(id);
+  var ctx = document.getElementById(id);
+  if (!ctx) return;
+
+  var isH = axis === 'y';
+
+  STATE.charts[id] = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: colors,
+        borderRadius: 4,
+        barPercentage: 0.7
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: axis,
+      plugins: {
+        legend: { display: false },
+        datalabels: {
+          display: true,
+          color: '#475569',
+          font: { size: 10, weight: '700' },
+          anchor: 'end',
+          align: isH ? 'right' : 'top',
+          offset: 4,
+          formatter: function(value) { return value + (suffix || ''); }
+        },
+        tooltip: {
+          backgroundColor: '#1e293b',
+          padding: 10,
+          cornerRadius: 6,
+          callbacks: {
+            label: function(ctx) { return ctx.parsed[isH ? 'x' : 'y'] + (suffix || ''); }
+          }
+        }
+      },
+      scales: {
+        x: {
+          display: !isH,
+          grid: { display: false },
+          max: maxVal || undefined,
+          ticks: { font: { size: 10 } }
+        },
+        y: {
+          display: isH,
+          beginAtZero: true,
+          max: maxVal || undefined,
+          grid: { color: '#f1f5f9', drawBorder: false },
+          ticks: {
+            font: { size: 10 },
+            callback: function(value) {
+              var label = this.getLabelForValue(value);
+              return label && label.length > 18 ? label.substring(0, 16) + '…' : label;
+            }
+          }
+        }
+      },
+      layout: { padding: { right: isH ? 40 : 0, top: !isH ? 20 : 0 } }
+    }
+  });
+}
+
+function renderAgenteVencidosChart(agentes) {
+  destroyChart('chartAgenteVencidos');
+  var ctx = document.getElementById('chartAgenteVencidos');
+  if (!ctx) return;
+
+  var labels = agentes.map(function(a) { return a.nombre; });
+  var activos = agentes.map(function(a) { return a.activos - a.vencidos; }); // activos en tiempo
+  var vencidos = agentes.map(function(a) { return a.vencidos; });
+
+  STATE.charts['chartAgenteVencidos'] = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Activos en tiempo',
+          data: activos,
+          backgroundColor: '#3b82f6',
+          borderRadius: 3
+        },
+        {
+          label: 'Vencidos',
+          data: vencidos,
+          backgroundColor: '#ef4444',
+          borderRadius: 3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 8, font: { size: 10 } }
+        },
+        datalabels: {
+          display: function(ctx) { return ctx.dataset.data[ctx.dataIndex] > 0; },
+          color: '#fff',
+          font: { size: 9, weight: 'bold' },
+          anchor: 'center',
+          align: 'center'
+        },
+        tooltip: { backgroundColor: '#1e293b', padding: 10, cornerRadius: 6 }
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: {
+          stacked: true,
+          grid: { color: '#f1f5f9', drawBorder: false },
+          ticks: {
+            font: { size: 10 },
+            callback: function(value) {
+              var label = this.getLabelForValue(value);
+              return label && label.length > 18 ? label.substring(0, 16) + '…' : label;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+// EXPORTACIONES
+// ============================================================
+function exportarExcel() {
+  const data = STATE.filtered.map(t => ({
+    Folio: t.folio,
+    Asunto: t.titulo,
+    Área: t.area,
+    Agente: t.agente,
+    Ubicación: t.ubicacion,
+    Cliente: t.cliente,
+    Inmueble: t.inmueble,
+    Prioridad: t.prioridad,
+    Estatus: t.estatus,
+    'Fecha Creación': t.fecha ? new Date(t.fecha).toLocaleDateString('es-MX') : '',
+    'Fecha Vencimiento': t.vencimiento ? new Date(t.vencimiento).toLocaleDateString('es-MX') : '',
+    'Fecha Cierre': t.fechaCierre ? new Date(t.fechaCierre).toLocaleDateString('es-MX') : '',
+    'Cerrado a Tiempo': t.cerradoATiempo === true ? 'Sí' : t.cerradoATiempo === false ? 'No' : '',
+    'Días Retraso': t.diasRetraso || 0,
+    'Notas': t.cantidadNotas || 0
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Tickets');
+
+  // Hoja resumen
+  const cerrados = STATE.filtered.filter(t => t.esCerrado);
+  const resumen = [
+    ['Métrica', 'Valor'],
+    ['Total Tickets', STATE.filtered.length],
+    ['Activos', STATE.filtered.filter(t => !t.esCerrado).length],
+    ['Cerrados', cerrados.length],
+    ['Vencidos', STATE.filtered.filter(t => t.estaVencido).length],
+    ['Cerrados a Tiempo', cerrados.filter(t => t.cerradoATiempo === true).length],
+    ['Cerrados Tarde', cerrados.filter(t => t.cerradoATiempo === false).length],
+    ['% Cumplimiento SLA', (STATE.resumen.pctATiempo || 0) + '%']
+  ];
+  const wsR = XLSX.utils.aoa_to_sheet(resumen);
+  XLSX.utils.book_append_sheet(wb, wsR, 'Resumen');
+
+  XLSX.writeFile(wb, 'Reporte_BI_HelpDesk_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+}
+
+function exportarTicketsTarde() {
+  const data = STATE.ticketsTarde.map(t => ({
+    Folio: t.folio,
+    Asunto: t.titulo,
+    Área: t.area,
+    Agente: t.agente,
+    Ubicación: t.ubicacion,
+    'Días Tarde': t.diasRetraso,
+    'F. Vencimiento': t.vencimiento ? new Date(t.vencimiento).toLocaleDateString('es-MX') : '',
+    'F. Cierre': t.fechaCierre ? new Date(t.fechaCierre).toLocaleDateString('es-MX') : ''
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Tickets Tarde');
+  XLSX.writeFile(wb, 'Tickets_Tarde_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+}
+
+async function exportarPDF() {
+  var jsPDF = window.jspdf.jsPDF;
+  var pdf = new jsPDF('l', 'mm', 'a4');
+  var W = pdf.internal.pageSize.getWidth();
+  var H = pdf.internal.pageSize.getHeight();
+  var M = 14;
+
+  var d = STATE.filtered;
+  var ahora = new Date();
+  var fmtD = function(s) {
+    return s ? new Date(s).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }) : '---';
+  };
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function setFont(style, size, r, g, b) {
+    pdf.setFont('helvetica', style || 'normal');
+    pdf.setFontSize(size || 9);
+    pdf.setTextColor(r || 30, g || 41, b || 59);
+  }
+
+  function fillRect(x, y, w, h, r, g, b) {
+    pdf.setFillColor(r, g, b);
+    pdf.rect(x, y, w, h, 'F');
+  }
+
+  function kpiBox(x, y, w, h, label, value, r, g, b) {
+    fillRect(x, y, w, h, 255, 255, 255);
+    pdf.setDrawColor(226, 232, 240);
+    pdf.rect(x, y, w, h);
+    fillRect(x, y, 2.5, h, r, g, b);
+    setFont('normal', 7, 100, 116, 139);
+    pdf.text(label.toUpperCase(), x + 5, y + 7);
+    setFont('bold', 17, r, g, b);
+    pdf.text(String(value), x + 5, y + 17);
+  }
+
+  function sectionHeader(y, title) {
+    fillRect(M, y, W - M * 2, 6.5, 248, 250, 252);
+    setFont('bold', 9, 11, 62, 161);
+    pdf.text(title, M + 2, y + 4.5);
+    return y + 8;
+  }
+
+  function footer(page, total) {
+    setFont('normal', 7, 180, 180, 180);
+    pdf.text(
+      'Pag. ' + page + ' de ' + total + '  -  HelpDesk Bexalta - Reporte Ejecutivo  -  Confidencial  -  ' + ahora.toLocaleString('es-MX'),
+      W / 2, H - 4, { align: 'center' }
+    );
+  }
+
+  // ── METRICAS ──────────────────────────────────────────────────────────────
+  var cerrados  = d.filter(function(t) { return t.esCerrado; });
+  var aTiempo   = cerrados.filter(function(t) { return t.cerradoATiempo === true; }).length;
+  var tarde     = cerrados.filter(function(t) { return t.cerradoATiempo === false; }).length;
+  var conSLA    = aTiempo + tarde;
+  var pctSLA    = conSLA > 0 ? Math.round((aTiempo / conSLA) * 100) : 0;
+  var vencidos  = d.filter(function(t) { return t.estaVencido; }).length;
+  var activos   = d.filter(function(t) { return !t.esCerrado; }).length;
+  var plan72    = d.filter(function(t) { return t.esPlan72; }).length;
+
+  var alta  = d.filter(function(t) { return ['Alta','Urgente','Critica'].includes(t.prioridad); }).length;
+  var media = d.filter(function(t) { return t.prioridad === 'Media'; }).length;
+  var baja  = d.filter(function(t) { return t.prioridad === 'Baja'; }).length;
+
+  // Top areas
+  var areas = {};
+  d.forEach(function(t) { var a = t.area || 'N/A'; areas[a] = (areas[a]||0)+1; });
+  var topAreas = Object.entries(areas).sort(function(a,b){return b[1]-a[1];}).slice(0,6);
+
+  // Scorecard agentes
+  var agMap = {};
+  d.forEach(function(t) {
+    var ag = (t.agente || 'Sin asignar').split('@')[0];
+    if (!agMap[ag]) agMap[ag] = { total:0, at:0, tarde:0, venc:0, area: t.area || '' };
+    agMap[ag].total++;
+    if (t.cerradoATiempo === true)  agMap[ag].at++;
+    if (t.cerradoATiempo === false) agMap[ag].tarde++;
+    if (t.estaVencido)              agMap[ag].venc++;
+  });
+  var topAgentes = Object.entries(agMap)
+    .filter(function(e){ return (e[1].at + e[1].tarde) > 0; })
+    .sort(function(a,b){ return b[1].total - a[1].total; })
+    .slice(0, 6);
+
+  // Top 5 tickets tarde
+  var ticketsTarde = d.filter(function(t){ return t.cerradoATiempo === false; })
+    .sort(function(a,b){ return (b.diasRetraso||0)-(a.diasRetraso||0); })
+    .slice(0,5);
+
+  var periodoEl  = document.getElementById('filtroPeriodo');
+  var periodoTxt = periodoEl ? periodoEl.options[periodoEl.selectedIndex].text : '';
+
+  var slaColor = pctSLA >= 85 ? [34,197,94] : pctSLA >= 70 ? [245,158,11] : [239,68,68];
+
+  // ════════════════════════════════════════════════════════════
+  // PAGINA 1
+  // ════════════════════════════════════════════════════════════
+  var y = 0;
+
+  // Header azul
+  fillRect(0, 0, W, 22, 11, 62, 161);
+  setFont('bold', 14, 255, 255, 255);
+  pdf.text('Reporte Ejecutivo - HelpDesk Bexalta', M, 9);
+  setFont('normal', 8, 200, 220, 255);
+  pdf.text('Periodo: ' + periodoTxt + '   -   ' + d.length + ' tickets analizados   -   ' + ahora.toLocaleString('es-MX'), M, 15);
+  setFont('bold', 18, slaColor[0], slaColor[1], slaColor[2]);
+  pdf.text(pctSLA + '% SLA', W - M - 30, 14);
+
+  y = 25;
+
+  // KPIs
+  var kpiW = (W - M * 2 - 10) / 6;
+  var kpiH = 22;
+  var kpis = [
+    { label: 'Total Periodo',  value: d.length,         r:59,  g:130, b:246 },
+    { label: 'Activos',        value: activos,            r:245, g:158, b:11  },
+    { label: 'Vencidos',       value: vencidos,           r:239, g:68,  b:68  },
+    { label: '% A Tiempo',     value: pctSLA + '%',       r:34,  g:197, b:94  },
+    { label: '% Tarde',        value: (100-pctSLA) + '%', r:239, g:68,  b:68  },
+    { label: 'Plan 72hrs',     value: plan72,             r:139, g:92,  b:246 }
+  ];
+  kpis.forEach(function(k, i) {
+    kpiBox(M + i * (kpiW + 2), y, kpiW, kpiH, k.label, k.value, k.r, k.g, k.b);
+  });
+  y += kpiH + 4;
+
+  // Barra SLA
+  setFont('normal', 7.5, 100, 116, 139);
+  pdf.text(
+    'Cumplimiento SLA - ' + aTiempo + ' a tiempo  /  ' + tarde + ' tarde  /  ' +
+    (cerrados.length - conSLA) + ' sin fecha resolucion registrada',
+    M, y + 3.5
+  );
+  var barX = M + 80;
+  var barW = W - M - barX - M;
+  fillRect(barX, y + 0.5, barW, 4, 226, 232, 240);
+  if (pctSLA > 0) fillRect(barX, y + 0.5, barW * pctSLA / 100, 4, slaColor[0], slaColor[1], slaColor[2]);
+  y += 8;
+
+  // ── DOS COLUMNAS: 55% areas | 42% prioridades ──
+  var colW  = (W - M * 2 - 6) * 0.55;  
+  var colWR = (W - M * 2 - 6) * 0.42;  
+  var xR    = M + colW + 8;
+
+  // Columna izq: Volumen por Area
+  y = sectionHeader(y, 'Volumen por Area - Top ' + topAreas.length);
+  var yL = y;
+  var maxArea = topAreas[0] ? topAreas[0][1] : 1;
+  var rowH = 8.5;
+
+  topAreas.forEach(function(e) {
+    var pct    = Math.round((e[1] / d.length) * 100);
+    var barLen = (colW - 50) * (e[1] / maxArea);
+    setFont('normal', 7.5, 30, 41, 59);
+    var label = e[0].length > 25 ? e[0].substring(0, 23) + '...' : e[0];
+    pdf.text(label, M, yL + 5);
+    fillRect(M + 42, yL + 1, barLen, 5, 59, 130, 246);
+    setFont('bold', 7.5, 30, 41, 59);
+    pdf.text(e[1] + ' (' + pct + '%)', M + 42 + barLen + 2, yL + 5);
+    yL += rowH;
+  });
+
+  // Columna der: Prioridades
+  var yR = y;
+
+  var prioData = [
+    { label:'Alta / Critica', val: alta,  r:239, g:68,  b:68  },
+    { label:'Media',          val: media, r:245, g:158, b:11  },
+    { label:'Baja',           val: baja,  r:34,  g:197, b:94  }
+  ];
+  var prioW = (colWR - 4) / 3;
+  prioData.forEach(function(p, i) {
+    var px = xR + i * (prioW + 2);
+    fillRect(px, yR, prioW, 14, 255, 255, 255);
+    pdf.setDrawColor(226, 232, 240);
+    pdf.rect(px, yR, prioW, 14);
+    fillRect(px, yR, 2, 14, p.r, p.g, p.b);
+    setFont('normal', 6.5, 100, 116, 139);
+    pdf.text(p.label.toUpperCase(), px + 4, yR + 5.5);
+    setFont('bold', 13, p.r, p.g, p.b);
+    pdf.text(String(p.val), px + 4, yR + 12.5);
+  });
+  yR += 18;
+
+  // Distribucion de estados (CORREGIDO ESPACIO PARA ETIQUETAS)
+  var estatusMap = {};
+  d.forEach(function(t){ var e = t.estatus || 'N/A'; estatusMap[e] = (estatusMap[e]||0)+1; });
+  var estatusList = Object.entries(estatusMap).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+
+  setFont('bold', 7.5, 11, 62, 161);
+  pdf.text('DISTRIBUCION DE ESTADOS', xR, yR);
+  yR += 4;
+
+  estatusList.forEach(function(e) {
+    var textWidthEstados = 42; // Más espacio para la etiqueta
+    var bLen = (colWR - textWidthEstados - 10) * (e[1] / d.length);
+    setFont('normal', 7, 30, 41, 59);
+    var lbl = e[0].length > 20 ? e[0].substring(0,18)+'...' : e[0];
+    pdf.text(lbl, xR, yR + 4.5);
+    fillRect(xR + textWidthEstados, yR + 0.5, bLen, 4.5, 59, 130, 246);
+    setFont('bold', 7, 30, 41, 59);
+    pdf.text(String(e[1]), xR + textWidthEstados + bLen + 2, yR + 4.5);
+    yR += 7.5;
+  });
+
+  var yAfterCols = Math.max(yL, yR) + 4;
+
+  // ── Scorecard de Agentes (CORREGIDO ANCHO DE COLUMNAS) ──
+  yAfterCols = sectionHeader(yAfterCols, 'Scorecard de Agentes - Top ' + topAgentes.length + ' (tickets con SLA medible)');
+
+  // Utilizamos todo el ancho disponible (269mm)
+  var cols = {
+    agente:    M + 2,
+    area:      M + 45,
+    total:     M + 95,
+    at:        M + 115,
+    tarde_col: M + 135,
+    venc:      M + 155,
+    sla:       M + 175,
+    bar:       M + 195
+  };
+
+  // Header tabla
+  fillRect(M, yAfterCols, W - M*2, 5.5, 30, 41, 59);
+  setFont('bold', 7, 255, 255, 255);
+  pdf.text('Agente',         cols.agente,     yAfterCols + 4);
+  pdf.text('Area',           cols.area,       yAfterCols + 4);
+  pdf.text('Total',          cols.total,      yAfterCols + 4);
+  pdf.text('A Tiempo',       cols.at,         yAfterCols + 4);
+  pdf.text('Tarde',          cols.tarde_col,  yAfterCols + 4);
+  pdf.text('Venc.',          cols.venc,       yAfterCols + 4);
+  pdf.text('% SLA',          cols.sla,        yAfterCols + 4);
+  pdf.text('Cumplimiento',   cols.bar,        yAfterCols + 4);
+  yAfterCols += 7;
+
+  topAgentes.forEach(function(e, i) {
+    var ag   = e[0];
+    var dat  = e[1];
+    var cSLA = dat.at + dat.tarde;
+    var pct  = cSLA > 0 ? Math.round((dat.at / cSLA) * 100) : null;
+    var bgRow = i % 2 === 0 ? [248,250,252] : [255,255,255];
+    fillRect(M, yAfterCols, W - M*2, 6.5, bgRow[0], bgRow[1], bgRow[2]);
+
+    var slaC = pct === null ? [148,163,184] : pct >= 85 ? [34,197,94] : pct >= 70 ? [245,158,11] : [239,68,68];
+
+    setFont('normal', 7.5, 30, 41, 59);
+    // Ahora pueden ser más largos los nombres
+    var agTxt   = ag.length > 22 ? ag.substring(0,20)+'...' : ag;
+    var areaTxt = (dat.area||'').length > 22 ? (dat.area||'').substring(0,20)+'...' : (dat.area||'');
+    
+    pdf.text(agTxt,          cols.agente,     yAfterCols + 4.5);
+    setFont('normal', 7, 100, 116, 139);
+    pdf.text(areaTxt,        cols.area,       yAfterCols + 4.5);
+    setFont('normal', 7.5, 30, 41, 59);
+    pdf.text(String(dat.total), cols.total,   yAfterCols + 4.5);
+    setFont('normal', 7.5, 34, 197, 94);
+    pdf.text(String(dat.at),    cols.at,      yAfterCols + 4.5);
+    setFont('normal', 7.5, 239, 68, 68);
+    pdf.text(String(dat.tarde), cols.tarde_col, yAfterCols + 4.5);
+    pdf.text(String(dat.venc),  cols.venc,    yAfterCols + 4.5);
+    setFont('bold', 7.5, slaC[0], slaC[1], slaC[2]);
+    pdf.text(pct !== null ? pct + '%' : 'N/A', cols.sla, yAfterCols + 4.5);
+
+    if (pct !== null) {
+      // La barra se extiende 60mm
+      fillRect(cols.bar, yAfterCols + 1, 60, 3.5, 226, 232, 240);
+      fillRect(cols.bar, yAfterCols + 1, 60 * pct / 100, 3.5, slaC[0], slaC[1], slaC[2]);
+    }
+    yAfterCols += 7.5;
+  });
+
+  footer(1, 2);
+
+  // ════════════════════════════════════════════════════════════
+  // PAGINA 2
+  // ════════════════════════════════════════════════════════════
+  pdf.addPage();
+  y = 10;
+
+  // Tickets cerrados tarde
+  var totalCerradosTarde = d.filter(function(t){ return t.cerradoATiempo === false; }).length;
+  y = sectionHeader(y, 'Tickets Cerrados Fuera de Tiempo (' + totalCerradosTarde + ' en el periodo)');
+
+  if (ticketsTarde.length === 0) {
+    fillRect(M, y, W - M*2, 10, 240, 253, 244);
+    setFont('bold', 9, 34, 197, 94);
+    pdf.text('OK - No se registraron cierres fuera de tiempo en el periodo seleccionado', M + 4, y + 6.5);
+    y += 14;
+  } else {
+    fillRect(M, y, W - M*2, 5.5, 30, 41, 59);
+    setFont('bold', 7, 255, 255, 255);
+    // Expandimos las columnas
+    var tc = { folio: M+2, asunto: M+20, area: M+125, agente: M+165, venc: M+200, cierre: M+230, dias: M+255 };
+    pdf.text('Folio',      tc.folio,  y+4);
+    pdf.text('Asunto',     tc.asunto, y+4);
+    pdf.text('Area',       tc.area,   y+4);
+    pdf.text('Agente',     tc.agente, y+4);
+    pdf.text('Vencia',     tc.venc,   y+4);
+    pdf.text('Cerrado',    tc.cierre, y+4);
+    pdf.text('Dias tarde', tc.dias,   y+4);
+    y += 7;
+
+    ticketsTarde.forEach(function(t, i) {
+      var bg = i % 2 === 0 ? [254,242,242] : [255,255,255];
+      fillRect(M, y, W - M*2, 6.5, bg[0], bg[1], bg[2]);
+      setFont('normal', 7.5, 30, 41, 59);
+      pdf.text('#' + String(t.folio||''),                      tc.folio,  y+4.5);
+      // Ahora el asunto puede tener hasta 60 caracteres antes de cortarse
+      pdf.text((t.titulo||'').substring(0,60),                 tc.asunto, y+4.5);
+      pdf.text((t.area||'').substring(0,20),                   tc.area,   y+4.5);
+      pdf.text((t.agente||'').split('@')[0].substring(0,18),   tc.agente, y+4.5);
+      pdf.text(fmtD(t.vencimiento),                            tc.venc,   y+4.5);
+      pdf.text(fmtD(t.fechaCierre),                            tc.cierre, y+4.5);
+      setFont('bold', 8, 239, 68, 68);
+      pdf.text((t.diasRetraso||0) + 'd',                       tc.dias,   y+4.5);
+      y += 7.5;
+    });
+
+    if (totalCerradosTarde > 5) {
+      setFont('normal', 6.5, 100, 116, 139);
+      pdf.text('* Se muestran los 5 con mayor retraso. Ver sistema para lista completa.', M, y+3);
+      y += 7;
+    }
+  }
+
+  y += 4;
+
+  // DOS COLUMNAS p2: Backlog | Resumen ejecutivo
+  var colH2W = (W - M * 2 - 6) / 2;
+
+  y = sectionHeader(y, 'Antiguedad del Backlog (' + activos + ' tickets activos)');
+  var yB = y;
+
+  var buckets = [
+    { label: '0-2 dias  (frescos)',   r:34,  g:197, b:94  },
+    { label: '3-7 dias',              r:59,  g:130, b:246 },
+    { label: '8-15 dias (atencion)',  r:245, g:158, b:11  },
+    { label: '+15 dias  (critico)',   r:239, g:68,  b:68  }
+  ];
+  var buckVals = [0,0,0,0];
+  var hoy0 = new Date(); hoy0.setHours(0,0,0,0);
+  d.forEach(function(t) {
+    if (!t.esCerrado && t.fecha) {
+      var diff = Math.floor((hoy0 - new Date(t.fecha)) / 86400000);
+      if (diff <= 2)       buckVals[0]++;
+      else if (diff <= 7)  buckVals[1]++;
+      else if (diff <= 15) buckVals[2]++;
+      else                 buckVals[3]++;
+    }
+  });
+  var maxBuck = Math.max.apply(null, buckVals) || 1;
+  buckets.forEach(function(b, i) {
+    // CORREGIDO: Comenzamos la barra más a la derecha (M+58 en lugar de M+47) para que las etiquetas largas no se tapen
+    var bLen = (colH2W - 70) * (buckVals[i] / maxBuck);
+    setFont('normal', 7.5, 30, 41, 59);
+    pdf.text(b.label, M, yB + 5);
+    fillRect(M + 58, yB + 1, bLen, 5, b.r, b.g, b.b);
+    setFont('bold', 7.5, b.r, b.g, b.b);
+    pdf.text(String(buckVals[i]), M + 58 + bLen + 2, yB + 5);
+    yB += 9;
+  });
+
+  // Resumen ejecutivo
+  var xR2  = M + colH2W + 6;
+  var yR2  = y;
+  fillRect(xR2, yR2, colH2W, 36, 248, 250, 252);
+  pdf.setDrawColor(226, 232, 240);
+  pdf.rect(xR2, yR2, colH2W, 36);
+  fillRect(xR2, yR2, colH2W, 6, 11, 62, 161);
+  setFont('bold', 8, 255, 255, 255);
+  pdf.text('RESUMEN EJECUTIVO', xR2 + 3, yR2 + 4.5);
+
+  var items = [
+    { label: 'Tickets resueltos en el periodo:', val: String(cerrados.length),  color: [30,41,59]    },
+    { label: 'Cumplimiento SLA global:',         val: pctSLA + '%',             color: slaColor      },
+    { label: 'Cerrados a tiempo:',               val: String(aTiempo),          color: [34,197,94]   },
+    { label: 'Cerrados fuera de tiempo:',        val: String(tarde),            color: [239,68,68]   },
+    { label: 'Tickets activos en este momento:', val: String(activos),          color: [245,158,11]  },
+    {
+      label: 'Vencimientos activos:',
+      val:   vencidos === 0 ? 'Ninguno' : String(vencidos) + ' pendientes',
+      color: vencidos === 0 ? [34,197,94] : [239,68,68]
+    }
+  ];
+  var yI = yR2 + 9;
+  items.forEach(function(it) {
+    setFont('normal', 7.5, 100, 116, 139);
+    pdf.text(it.label, xR2 + 3, yI);
+    setFont('bold', 8, it.color[0], it.color[1], it.color[2]);
+    pdf.text(it.val, xR2 + colH2W - 3, yI, { align: 'right' });
+    pdf.setDrawColor(226, 232, 240);
+    pdf.setLineWidth(0.2);
+    pdf.line(xR2 + 3, yI + 1.5, xR2 + colH2W - 3, yI + 1.5);
+    yI += 5.5;
+  });
+
+  // Nota metodologica
+  var yFinal = Math.max(yB, yI) + 8;
+  fillRect(M, yFinal, W - M*2, 10, 239, 246, 255);
+  pdf.setDrawColor(191, 219, 254);
+  pdf.rect(M, yFinal, W - M*2, 10);
+  setFont('normal', 6.5, 30, 64, 175);
+  pdf.text(
+    'Metodologia: El % SLA se calcula exclusivamente sobre tickets con fecha de resolucion registrada. ' +
+    'Tickets cerrados sin fecha de resolucion (' + (cerrados.length - conSLA) + ' en este periodo) quedan fuera del calculo sin penalizar ni beneficiar el indicador.',
+    M + 3, yFinal + 4.5
+  );
+  pdf.text(
+    'Fuente: Sistema HelpDesk Bexalta (Google Sheets). Los datos reflejan el estado al momento de generar este reporte.',
+    M + 3, yFinal + 8.5
+  );
+
+  footer(2, 2);
+
+  pdf.save('Reporte_Ejecutivo_BI_' + new Date().toISOString().slice(0,10) + '.pdf');
+}
+
+function volverAlSistema() {
+  google.script.run
+    .withSuccessHandler(url => { window.top.location.href = url; })
+    .getAppUrl();
+}
+
+// 5C. JS — Funciones de Análisis de Vencimientos:
+
+function renderTabVencimientos() {
+  var d = STATE.filtered;
+  var ahora = new Date();
+  var fmtDate = function(s) { return s ? new Date(s).toLocaleDateString('es-MX') : '—'; };
+
+  // Clasificar
+  var vencidosActivos = [];
+  var cerradosTarde = [];
+
+  d.forEach(function(t) {
+    if (t.esCerrado) {
+      if (t.cerradoATiempo === false) {
+        var diasT = t.diasRetraso || 0;
+        var horasT = 0;
+        if (t.vencimiento && t.fechaCierre) {
+          horasT = Math.round((new Date(t.fechaCierre) - new Date(t.vencimiento)) / (1000 * 60 * 60));
+        }
+        cerradosTarde.push({
+          ticket: t,
+          dias: diasT,
+          horas: horasT > 0 ? horasT : diasT * 24
+        });
+      }
+    } else if (t.estaVencido) {
+      var diasV = 0;
+      var horasV = 0;
+      if (t.vencimiento) {
+        var fVenc = new Date(t.vencimiento);
+        var diffMs = ahora.getTime() - fVenc.getTime();
+        diasV = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        horasV = Math.round(diffMs / (1000 * 60 * 60));
+      }
+      vencidosActivos.push({
+        ticket: t,
+        dias: diasV,
+        horas: horasV
+      });
+    }
+  });
+
+  // Ordenar por días desc
+  vencidosActivos.sort(function(a, b) { return b.dias - a.dias; });
+  cerradosTarde.sort(function(a, b) { return b.dias - a.dias; });
+
+  // KPIs
+  var promDias = 0;
+  var maxDias = 0;
+  if (vencidosActivos.length > 0) {
+    var sumDias = vencidosActivos.reduce(function(s, v) { return s + v.dias; }, 0);
+    promDias = Math.round(sumDias / vencidosActivos.length);
+    maxDias = vencidosActivos[0].dias;
+  }
+
+  setText('vencTotalActivos', vencidosActivos.length);
+  setText('vencPromDiasRetraso', promDias);
+  setText('vencMaxDias', maxDias);
+  setText('vencCerradosTarde', cerradosTarde.length);
+  setText('countVencidos', vencidosActivos.length);
+  setText('countCerradosTarde2', cerradosTarde.length);
+
+  // Gráfica: Vencidos por Área
+  var vencPorArea = {};
+  vencidosActivos.forEach(function(v) {
+    var area = v.ticket.area || 'Sin Área';
+    vencPorArea[area] = (vencPorArea[area] || 0) + 1;
+  });
+  var vaLabels = Object.keys(vencPorArea);
+  var vaValues = vaLabels.map(function(l) { return vencPorArea[l]; });
+  var vaColors = vaLabels.map(function(_, i) { return PALETTE[i % PALETTE.length]; });
+  renderDoughnutChart('chartVencArea', vaLabels, vaValues, vaColors);
+
+  // Gráfica: Vencidos por Prioridad
+  var vencPorPrio = {};
+  vencidosActivos.forEach(function(v) {
+    var prio = v.ticket.prioridad || 'Sin prioridad';
+    vencPorPrio[prio] = (vencPorPrio[prio] || 0) + 1;
+  });
+  var vpLabels = Object.keys(vencPorPrio);
+  var vpValues = vpLabels.map(function(l) { return vencPorPrio[l]; });
+  var vpColors = vpLabels.map(function(l) { return COLOR_MAP[l] || '#cbd5e1'; });
+  renderDoughnutChart('chartVencPrio', vpLabels, vpValues, vpColors);
+
+  // Gráfica: Rango de vencimiento
+  var rangos = { '1-2 días': 0, '3-5 días': 0, '6-10 días': 0, '11-20 días': 0, '+20 días': 0 };
+  vencidosActivos.forEach(function(v) {
+    if (v.dias <= 2) rangos['1-2 días']++;
+    else if (v.dias <= 5) rangos['3-5 días']++;
+    else if (v.dias <= 10) rangos['6-10 días']++;
+    else if (v.dias <= 20) rangos['11-20 días']++;
+    else rangos['+20 días']++;
+  });
+  renderDoughnutChart('chartVencRango',
+    Object.keys(rangos), Object.values(rangos),
+    ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#7f1d1d']
+  );
+
+  // Tabla: Vencidos activos
+  var tbVenc = document.getElementById('tableVencidos');
+  if (tbVenc) {
+    if (vencidosActivos.length === 0) {
+      tbVenc.innerHTML = '<tr><td colspan="11" class="text-center py-4 text-muted">🎉 ¡No hay tickets vencidos!</td></tr>';
+    } else {
+      tbVenc.innerHTML = vencidosActivos.slice(0, 100).map(function(v) {
+        var t = v.ticket;
+        var prioColor = COLOR_MAP[t.prioridad] || '#64748b';
+        var diasClass = v.dias > 10 ? 'text-danger fw-bold' : v.dias > 5 ? 'text-warning fw-bold' : 'text-dark';
+        return '<tr onclick="verDetalle(\'' + t.id + '\')">' +
+          '<td class="fw-bold text-dark">#' + esc(t.folio) + '</td>' +
+          '<td>' + esc((t.titulo || '').substring(0, 45)) + '</td>' +
+          '<td>' + esc(t.area) + '</td>' +
+          '<td>' + esc(t.agente) + '</td>' +
+          '<td>' + esc(t.ubicacion) + '</td>' +
+          '<td><span style="color:' + prioColor + '; font-weight:600;">' + esc(t.prioridad) + '</span></td>' +
+          '<td><span class="badge-neutral">' + esc(t.estatus) + '</span></td>' +
+          '<td class="small text-muted">' + fmtDate(t.fecha) + '</td>' +
+          '<td class="small text-danger">' + fmtDate(t.vencimiento) + '</td>' +
+          '<td class="' + diasClass + '">' + v.dias + 'd</td>' +
+          '<td class="text-muted small">' + v.horas + 'h</td>' +
+          '</tr>';
+      }).join('');
+    }
+  }
+
+  // Tabla: Cerrados tarde (historial)
+  var tbTarde = document.getElementById('tableCerradosTardeDetalle');
+  if (tbTarde) {
+    if (cerradosTarde.length === 0) {
+      tbTarde.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">Sin registros de cierres tardíos</td></tr>';
+    } else {
+      tbTarde.innerHTML = cerradosTarde.slice(0, 100).map(function(v) {
+        var t = v.ticket;
+        return '<tr onclick="verDetalle(\'' + t.id + '\')">' +
+          '<td class="fw-bold text-dark">#' + esc(t.folio) + '</td>' +
+          '<td>' + esc((t.titulo || '').substring(0, 45)) + '</td>' +
+          '<td>' + esc(t.area) + '</td>' +
+          '<td>' + esc(t.agente) + '</td>' +
+          '<td class="small">' + fmtDate(t.vencimiento) + '</td>' +
+          '<td class="small">' + fmtDate(t.fechaCierre) + '</td>' +
+          '<td class="text-danger fw-bold">' + v.dias + 'd</td>' +
+          '<td class="text-muted small">' + v.horas + 'h</td>' +
+          '</tr>';
+      }).join('');
+    }
+  }
+}
+
+// Exportar vencidos a Excel
+function exportarVencidosExcel() {
+  var d = STATE.filtered;
+  var ahora = new Date();
+
+  var vencidos = d.filter(function(t) { return t.estaVencido; }).map(function(t) {
+    var diasV = 0, horasV = 0;
+    if (t.vencimiento) {
+      var diffMs = ahora.getTime() - new Date(t.vencimiento).getTime();
+      diasV = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      horasV = Math.round(diffMs / (1000 * 60 * 60));
+    }
+    return {
+      Folio: t.folio,
+      Asunto: t.titulo,
+      'Área': t.area,
+      Agente: t.agente,
+      'Ubicación': t.ubicacion,
+      Prioridad: t.prioridad,
+      Estatus: t.estatus,
+      'Fecha Creación': t.fecha ? new Date(t.fecha).toLocaleDateString('es-MX') : '',
+      'Fecha Vencimiento': t.vencimiento ? new Date(t.vencimiento).toLocaleDateString('es-MX') : '',
+      'Días Vencido': diasV,
+      'Horas Retraso': horasV
+    };
+  });
+
+  var cerradosTarde = d.filter(function(t) { return t.esCerrado && t.cerradoATiempo === false; }).map(function(t) {
+    var horasT = 0;
+    if (t.vencimiento && t.fechaCierre) {
+      horasT = Math.round((new Date(t.fechaCierre) - new Date(t.vencimiento)) / (1000 * 60 * 60));
+    }
+    return {
+      Folio: t.folio,
+      Asunto: t.titulo,
+      'Área': t.area,
+      Agente: t.agente,
+      'Ubicación': t.ubicacion,
+      'Fecha Vencimiento': t.vencimiento ? new Date(t.vencimiento).toLocaleDateString('es-MX') : '',
+      'Fecha Cierre': t.fechaCierre ? new Date(t.fechaCierre).toLocaleDateString('es-MX') : '',
+      'Días Tarde': t.diasRetraso || 0,
+      'Horas Tarde': horasT
+    };
+  });
+
+  var wb = XLSX.utils.book_new();
+  var ws1 = XLSX.utils.json_to_sheet(vencidos);
+  XLSX.utils.book_append_sheet(wb, ws1, 'Vencidos Activos');
+  var ws2 = XLSX.utils.json_to_sheet(cerradosTarde);
+  XLSX.utils.book_append_sheet(wb, ws2, 'Cerrados Tarde');
+  XLSX.writeFile(wb, 'Analisis_Vencimientos_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+}
+
+// Exportar rendimiento agentes
+function exportarRendimientoExcel() {
+  var agentes = {};
+  STATE.filtered.forEach(function(t) {
+    var ag = t.agente || 'Sin asignar';
+    if (!agentes[ag]) agentes[ag] = { nombre: ag, area: t.area, total: 0, activos: 0, cerrados: 0, aTiempo: 0, tarde: 0, vencidos: 0, hrs: [] };
+    var a = agentes[ag];
+    a.total++;
+    if (t.esCerrado) {
+      a.cerrados++;
+      if (t.cerradoATiempo === true) a.aTiempo++;
+      if (t.cerradoATiempo === false) a.tarde++;
+      if (t.fecha && t.fechaCierre) {
+        var h = (new Date(t.fechaCierre) - new Date(t.fecha)) / (1000 * 60 * 60);
+        if (h > 0 && h < 720) a.hrs.push(h);
+      }
+    } else {
+      a.activos++;
+      if (t.estaVencido) a.vencidos++;
+    }
+  });
+
+  var rows = Object.values(agentes).sort(function(a, b) { return b.total - a.total; }).map(function(a) {
+    var conSLA = a.aTiempo + a.tarde;
+    var sla = conSLA > 0 ? Math.round((a.aTiempo / conSLA) * 100) : null;
+    var prom = a.hrs.length > 0 ? (a.hrs.reduce(function(x, y) { return x + y; }, 0) / a.hrs.length).toFixed(1) : '';
+    return {
+      Agente: a.nombre,
+      'Área': a.area,
+      'Total Tickets': a.total,
+      Activos: a.activos,
+      Cerrados: a.cerrados,
+      'A Tiempo': a.aTiempo,
+      Tarde: a.tarde,
+      'Vencidos Activos': a.vencidos,
+      '% SLA': sla !== null ? sla + '%' : 'N/A',
+      'Prom. Hrs Resolución': prom
+    };
+  });
+
+  var ws = XLSX.utils.json_to_sheet(rows);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Rendimiento Agentes');
+  XLSX.writeFile(wb, 'Rendimiento_Agentes_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+}
+
+// 2B. JS — Agregar esta función
+function limpiarFiltrosBI() {
+  document.getElementById('filtroUbicacion').value = 'all';
+  document.getElementById('filtroArea').value = 'all';
+  document.getElementById('filtroAgente').value = 'all';
+  document.getElementById('filtroPrioridad').value = 'all';
+  document.getElementById('filtroEstatus').value = 'all';
+  document.getElementById('filtroCliente').value = 'all';
+  aplicarFiltrosLocales();
+}
+
+// ============================================================
+// REDIMENSIÓN DE COLUMNAS — Drag & Drop en <th>
+// ============================================================
+function initColumnResize() {
+  document.querySelectorAll('.data-table').forEach(function(table) {
+    var ths = table.querySelectorAll('thead th');
+    ths.forEach(function(th) {
+      // Evitar duplicar handles
+      if (th.querySelector('.col-resizer')) return;
+
+      var resizer = document.createElement('div');
+      resizer.className = 'col-resizer';
+      resizer.style.cssText = [
+        'position:absolute', 'right:0', 'top:0',
+        'width:5px', 'height:100%',
+        'cursor:col-resize',
+        'user-select:none',
+        'background:transparent',
+        'z-index:1'
+      ].join(';');
+      th.style.position = 'relative';
+      th.appendChild(resizer);
+
+      var startX, startW;
+
+      resizer.addEventListener('mousedown', function(e) {
+        startX = e.pageX;
+        startW = th.offsetWidth;
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+
+        function onMove(e) {
+          var newW = Math.max(40, startW + (e.pageX - startX));
+          th.style.width = newW + 'px';
+          th.style.minWidth = newW + 'px';
+        }
+
+        function onUp() {
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+        }
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+        e.preventDefault();
+      });
+
+      // Highlight al hover
+      resizer.addEventListener('mouseenter', function() {
+        resizer.style.background = '#cbd5e1';
+      });
+      resizer.addEventListener('mouseleave', function() {
+        resizer.style.background = 'transparent';
+      });
+    });
+  });
+}
+
+// Llamar al renderizar la tabla y al cambiar de tab
+var _origRenderizarTabla = renderizarTabla;
+renderizarTabla = function() {
+  _origRenderizarTabla();
+  setTimeout(initColumnResize, 50);
+};
+
+document.querySelectorAll('[data-bs-toggle="tab"]').forEach(function(tab) {
+  tab.addEventListener('shown.bs.tab', function() {
+    setTimeout(initColumnResize, 200);
+  });
+});
+
+// ============================================================
+// RE-RENDERIZAR GRÁFICAS AL CAMBIAR TAB
+// ============================================================
+document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
+  tab.addEventListener('shown.bs.tab', function(e) {
+    setTimeout(() => {
+      const target = e.target.getAttribute('data-bs-target');
+
+      if (target === '#tabSLA') {
+        const d = STATE.filtered;
+        const cerrados = d.filter(t => t.esCerrado);
+        const aTiempo = cerrados.filter(t => t.cerradoATiempo === true).length;
+        const tarde = cerrados.filter(t => t.cerradoATiempo === false).length;
+        renderSLADonut('chartSLACompliance', aTiempo, tarde);
+
+        const buckets = { '0-2 días': 0, '3-7 días': 0, '8-15 días': 0, '+15 días': 0 };
+        const now = new Date();
+        d.forEach(t => {
+          if (!t.esCerrado && t.fecha) {
+            const diff = Math.floor((now - new Date(t.fecha)) / (1000 * 60 * 60 * 24));
+            if (diff <= 2) buckets['0-2 días']++;
+            else if (diff <= 7) buckets['3-7 días']++;
+            else if (diff <= 15) buckets['8-15 días']++;
+            else buckets['+15 días']++;
+          }
+        });
+        renderDoughnutChart('chartAgeing', Object.keys(buckets), Object.values(buckets),
+          ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444']);
+      }
+
+      if (target === '#tabUbicacion') {
+        const d = STATE.filtered;
+        const groupBy = (arr, key) => arr.reduce((acc, item) => {
+          const k = item[key] || 'N/A'; acc[k] = (acc[k] || 0) + 1; return acc;
+        }, {});
+        const ubicData = groupBy(d, 'ubicacion');
+        const ubicSorted = Object.entries(ubicData).sort((a, b) => b[1] - a[1]).slice(0, 15);
+        renderBarChart('chartUbicacion', ubicSorted.map(x => x[0]), ubicSorted.map(x => x[1]), PALETTE, 'y');
+        renderStackedUbicacionSLA();
+      }
+
+      if (target === '#tabRendimiento') {
+        renderTabRendimiento();
+      }
+
+      if (target === '#tabVencimientos') {
+        renderTabVencimientos();
+      }
+
+      if (target === '#tabNotas') {
+        const d = STATE.filtered;
+        const notasUbic = {};
+        d.forEach(t => {
+          const u = t.ubicacion || 'N/A';
+          notasUbic[u] = (notasUbic[u] || 0) + (t.cantidadNotas || 0);
+        });
+        const nUS = Object.entries(notasUbic).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        renderBarChart('chartNotasUbicacion', nUS.map(x => x[0]), nUS.map(x => x[1]), ['#6366f1'], 'y');
+
+        const notasCliente = {};
+        d.forEach(t => {
+          const c = t.cliente || 'Sin Cliente';
+          notasCliente[c] = (notasCliente[c] || 0) + (t.cantidadNotas || 0);
+        });
+        const nCS = Object.entries(notasCliente).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        renderBarChart('chartNotasCliente', nCS.map(x => x[0]), nCS.map(x => x[1]), ['#ec4899'], 'y');
+      }
+    }, 120);
+  });
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Favicon — Apps Script no permite data: en <link>, se inyecta por JS
+  (function() {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 16 16">' +
+      '<rect width="16" height="16" rx="3" fill="%230b3ea1"/>' +
+      '<path fill="white" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1m0 1a6 6 0 1 1 0 12A6 6 0 0 1 8 2m0 2.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7m0 1a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5m-4.707-.854 2.5 2.5.708.707-.708.707-2.5-2.5.708-.707zm9.414 0 .707.707-2.5 2.5-.707-.707 2.5-2.5zM7.5 9.5h1v2.5h-1zm0-5.5h1V6.5h-1z"/>' +
+      '</svg>';
+    var url = 'data:image/svg+xml,' + svg;
+    var link = document.querySelector("link[rel~='icon']") || document.createElement('link');
+    link.type = 'image/svg+xml';
+    link.rel  = 'icon';
+    link.href = url;
+    document.head.appendChild(link);
+  })();
+</script>
+</body>
+</html>
