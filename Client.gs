@@ -189,7 +189,7 @@ Usuarios: [
   'Disponible', 'MotivoAusencia', 'FechaInicioAusencia', 'FechaFinAusencia',
   'EmailNotificacion',
   'EstatusUsuario',
-  'TelegramID' // <--- AGREGAR ESTO AL FINAL
+  'TelegramID', 'UbicacionFisica'// <--- AGREGAR ESTO AL FINAL
 ],
   Categorias: ['Nombre', 'Área'],
   Areas: ['Nombre'],
@@ -257,25 +257,17 @@ const GERENTES_AREAS = {
  * Entrada principal del Web App (GET)
  */
 function doGet(e) {
-  const action = e && e.parameter ? e.parameter.action : null;
-  const ticketId = e && e.parameter ? e.parameter.id : null;
-  const autoOpenTicket = e && e.parameter ? e.parameter.ticket : null;
+  const action      = e && e.parameter ? e.parameter.action   : null;
+  const ticketId    = e && e.parameter ? (e.parameter.ticket || e.parameter.tid || e.parameter.id || '') : '';
+  const isDirect    = e && e.parameter ? e.parameter._direct  : null;
+  const autoOpenTicket = ticketId || '';
 
   // 1) APROBACIÓN / RECHAZO DE COTIZACIONES
   if (action === 'approve_cot' || action === 'reject_cot') {
     try {
-      let msg;
-      if (action === 'reject_cot') {
-        // Llama directamente a handleCotizacionApproval con 'reject'
-        // que ahora usa 'Cotización Rechazada' en lugar de 'En Espera'
-        msg = handleCotizacionApproval(ticketId, 'reject');
-      } else {
-        msg = handleCotizacionApproval(ticketId, 'approve');
-      }
-
+      const msg = handleCotizacionApproval(ticketId, action === 'reject_cot' ? 'reject' : 'approve');
       const colorHeader = action === 'reject_cot' ? '#dc2626' : '#198754';
       const iconHeader  = action === 'reject_cot' ? '❌' : '✅';
-
       return HtmlService.createHtmlOutput(`
         <body style="font-family:Arial;text-align:center;background:#f7f9fc;">
           <div style="max-width:600px;margin:50px auto;padding:30px;border-radius:12px;background:white;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
@@ -287,11 +279,8 @@ function doGet(e) {
       `);
     } catch (err) {
       return HtmlService.createHtmlOutput(`
-        <body style="font-family:Arial;text-align:center;background:#f7f9fc;">
-          <div style="max-width:600px;margin:50px auto;padding:30px;border-radius:12px;background:white;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
-            <h2 style="color:#dc3545;margin-bottom:20px;">Error</h2>
-            <p style="font-size:1.1em;color:#333;">${err.message}</p>
-          </div>
+        <body style="font-family:Arial;text-align:center;">
+          <h2 style="color:#dc3545;">Error</h2><p>${err.message}</p>
         </body>
       `);
     }
@@ -313,11 +302,8 @@ function doGet(e) {
       `);
     } catch (err) {
       return HtmlService.createHtmlOutput(`
-        <body style="font-family:Arial;text-align:center;background:#f7f9fc;">
-          <div style="max-width:600px;margin:50px auto;padding:30px;border-radius:12px;background:white;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
-            <h2 style="color:#dc3545;margin-bottom:20px;">Error</h2>
-            <p style="font-size:1.1em;color:#333;">${err.message}</p>
-          </div>
+        <body style="font-family:Arial;text-align:center;">
+          <h2 style="color:#dc3545;">Error</h2><p>${err.message}</p>
         </body>
       `);
     }
@@ -326,9 +312,7 @@ function doGet(e) {
   // 3) APROBACIÓN DE REPROGRAMACIÓN
   if (action === 'approve_reprog') {
     try {
-      const fecha = e.parameter.fecha || '';
-      const hora  = e.parameter.hora  || '';
-      const msg   = aprobarReprogramacion(ticketId, fecha, hora);
+      const msg = aprobarReprogramacion(ticketId, e.parameter.fecha || '', e.parameter.hora || '');
       return HtmlService.createHtmlOutput(`
         <body style="font-family:Arial;text-align:center;background:#f7f9fc;">
           <div style="max-width:600px;margin:50px auto;padding:30px;border-radius:12px;background:white;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
@@ -367,16 +351,11 @@ function doGet(e) {
     if (m.ResetToken == null) {
       return HtmlService.createHtmlOutput('<h3>Sistema no configurado para reset de contraseña.</h3>');
     }
-
     const idx = rows.findIndex(r => String(r[m.ResetToken]) === token);
-    if (idx < 0) {
-      return HtmlService.createHtmlOutput('<h3>Token inválido o expirado.</h3>');
-    }
+    if (idx < 0) return HtmlService.createHtmlOutput('<h3>Token inválido o expirado.</h3>');
 
     const exp = Number(rows[idx][m.ResetExp] || 0);
-    if (Date.now() > exp) {
-      return HtmlService.createHtmlOutput('<h3>Este enlace ha expirado.</h3>');
-    }
+    if (Date.now() > exp) return HtmlService.createHtmlOutput('<h3>Este enlace ha expirado.</h3>');
 
     const t = HtmlService.createTemplateFromFile('ResetPassword');
     t.token = token;
@@ -393,11 +372,137 @@ function doGet(e) {
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
 
-  // 6) CARGA NORMAL DEL SISTEMA
+  // 6) PÁGINA PUENTE — ticket en URL y no es acceso directo forzado
+  if (autoOpenTicket && !isDirect) {
+    const scriptUrl = ScriptApp.getService().getUrl();
+    const directUrl = scriptUrl + '?ticket=' + encodeURIComponent(autoOpenTicket) + '&_direct=1';
+
+    return HtmlService.createHtmlOutput(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Abriendo ticket...</title>
+        <style>
+          * { box-sizing:border-box; margin:0; padding:0; }
+          body {
+            font-family: Arial, sans-serif;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+          }
+          .card {
+            background: white;
+            border-radius: 16px;
+            padding: 48px 40px;
+            text-align: center;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            max-width: 420px;
+            width: 90%;
+          }
+          .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #0d47a1;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 24px;
+          }
+          @keyframes spin { to { transform: rotate(360deg); } }
+          .icon { font-size: 48px; margin-bottom: 16px; }
+          h2 { color: #1e293b; font-size: 1.3rem; margin-bottom: 8px; }
+          p  { color: #64748b; font-size: 0.95rem; line-height: 1.5; margin-bottom: 24px; }
+          .btn {
+            background: #0d47a1;
+            color: white;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: none;
+          }
+          .btn:hover { background: #1565c0; }
+          .btn-secondary {
+            background: transparent;
+            color: #0d47a1;
+            border: 1px solid #0d47a1;
+            margin-left: 8px;
+          }
+          .btn-secondary:hover { background: #e8f0fe; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="spinner" id="spinner"></div>
+          <div class="icon" id="icon" style="display:none;"></div>
+          <h2 id="titulo">Abriendo ticket...</h2>
+          <p id="mensaje">Buscando tu sesión activa del sistema.</p>
+          <div id="botones">
+            <button class="btn" id="btnCerrar" onclick="window.close()">Cerrar esta pestaña</button>
+            <button class="btn btn-secondary" id="btnAbrir" onclick="window.location.href='${directUrl}'">Abrir aquí</button>
+          </div>
+        </div>
+
+        <script>
+          const TICKET_ID  = '${autoOpenTicket}';
+          const DIRECT_URL = '${directUrl}';
+          const BC = (typeof BroadcastChannel !== 'undefined')
+            ? new BroadcastChannel('bexalta_helpdesk') : null;
+
+          function mostrarExito() {
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('icon').style.display = 'block';
+            document.getElementById('icon').textContent = '✅';
+            document.getElementById('titulo').textContent = 'Ticket abierto';
+            document.getElementById('mensaje').textContent =
+              'El ticket se abrió en tu pestaña del sistema. Puedes cerrar esta ventana.';
+            // Cerrar automáticamente en 4 segundos
+            setTimeout(() => window.close(), 4000);
+          }
+
+          function irAlSistema() {
+            window.location.href = DIRECT_URL;
+          }
+
+          if (BC) {
+            let respondio = false;
+
+            BC.onmessage = function(e) {
+              if (e.data && e.data.tipo === 'ticketTomado' && e.data.ticketId === TICKET_ID) {
+                respondio = true;
+                mostrarExito();
+              }
+            };
+
+            BC.postMessage({ tipo: 'abrirTicket', ticketId: TICKET_ID });
+
+            // Si nadie responde en 1.5s → cargar sistema completo aquí
+            setTimeout(function() {
+              if (!respondio) irAlSistema();
+            }, 1500);
+
+          } else {
+            // Sin BroadcastChannel → ir directo
+            irAlSistema();
+          }
+        </script>
+      </body>
+      </html>
+    `)
+    .setTitle('Abriendo ticket...')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+
+  // 7) CARGA NORMAL DEL SISTEMA
   ensureSheets();
   const t = HtmlService.createTemplateFromFile('Index');
   t.brand = getConfig('nombreSistema') || 'Bexalta Helpdesk';
-  t.autoOpenTicket = autoOpenTicket || '';
+  t.autoOpenTicket = autoOpenTicket; // vacío si no hay ticket, o el ID si viene con _direct=1
 
   return t.evaluate()
     .setTitle(t.brand)
@@ -406,17 +511,35 @@ function doGet(e) {
 }
 
 
-/**
- * Obtiene la URL pública de la Web App
- * @param {string} ticketId - (Opcional) ID del ticket para generar URL directa
- * @returns {string} URL del script, opcionalmente con parámetro de ticket
- */
 function getScriptUrl(ticketId) {
   const baseUrl = ScriptApp.getService().getUrl();
   if (ticketId) {
+    // Apps Script lee 'ticket' en doGet correctamente
     return baseUrl + '?ticket=' + encodeURIComponent(ticketId);
   }
   return baseUrl;
+}
+
+/**
+ * Genera el botón HTML para correos apuntando directamente al ticket.
+ * Usar esta función en lugar de escribir el <a> manualmente en cada correo.
+ */
+function getBtnTicketHtml(ticketId, folio, label) {
+  const url = getScriptUrl(ticketId);
+  const texto = label || ('🔗 Ver Ticket #' + folio);
+  return `
+    <p style="margin-top:25px;text-align:center;">
+      <a href="${url}"
+         target="bexalta_helpdesk"
+         style="display:inline-block;background:#3b82f6;color:white;padding:12px 30px;
+                text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;">
+        ${texto}
+      </a>
+    </p>
+    <p style="text-align:center;margin-top:10px;color:#94a3b8;font-size:0.8em;">
+      Si el botón no abre, copia este enlace:<br>
+      <a href="${url}" target="bexalta_helpdesk" style="color:#3b82f6;word-break:break-all;">${url}</a>
+    </p>`;
 }
 
 /**
@@ -846,57 +969,53 @@ function listUsers() {
     ubicacion: m['Ubicación'] != null ? r[m['Ubicación']] : '',
     // AGREGAR ESTOS DOS:
     puesto: m.Puesto != null ? r[m.Puesto] : '',
+    // En listUsers(), dentro del .map():
+  ubicacionFisica: m['UbicacionFisica'] != null ? r[m['UbicacionFisica']] : '',
     estatus: m.Estatus != null ? r[m.Estatus] : 'Activo'
   }));
 }
 
 
-/**
- * Crear nuevo usuario con envío de credenciales
- */
-function createUser(email, nombre, rol, area, ubicacion, puesto, estatus) {
+function createUser(email, nombre, rol, area, ubicacion, puesto, estatus, ubicacionFisica) {
   if (!email) throw new Error('Email requerido');
-
   return withLock_(() => {
     const sh = getSheet(DB.USERS);
     const { headers, rows } = _readTableByHeader_(DB.USERS);
     const m = _headerMap_(headers);
 
-    // Verificar si ya existe
-    const existe = rows.find(r => String(r[m.Email] || '').toLowerCase() === email.toLowerCase());
-    if (existe) throw new Error('El usuario ya existe');
+    if (rows.find(r => String(r[m.Email] || '').toLowerCase() === email.toLowerCase())) {
+      throw new Error('El usuario ya existe');
+    }
 
-    // Generar contraseña aleatoria
-    const password = generarPasswordSeguro(); // [cite: 49]
+    const password = generarPasswordSeguro();
     const hash = hashPassword(password);
 
-    // Mapeo dinámico de columnas
     const newRow = headers.map(h => {
       switch (h) {
-        case 'Email': return email.toLowerCase();
-        case 'Nombre': return nombre || '';
-        case 'Rol': return rol || 'usuario';
-        case 'Área': return area || '';
-        case 'Ubicación': return ubicacion || '';
-        case 'Puesto': return puesto || '';
-        case 'Estatus': return estatus || 'Activo'; // Nuevo campo
-        case 'PasswordHash': return hash;
-        case 'Disponible': return true;
-        default: return '';
+        case 'Email':           return email.toLowerCase();
+        case 'Nombre':          return nombre || '';
+        case 'Rol':             return rol || 'usuario';
+        case 'Área':            return area || '';
+        case 'Ubicación':       return ubicacion || '';
+        case 'UbicacionFisica': return ubicacionFisica || '';
+        case 'Puesto':          return puesto || '';
+        case 'Estatus':         return estatus || 'Activo';
+        case 'PasswordHash':    return hash;
+        case 'Disponible':      return true;
+        default:                return '';
       }
     });
 
     sh.appendRow(newRow);
     clearCache(DB.USERS);
 
-    // Enviar correo de bienvenida con credenciales
     try {
       MailApp.sendEmail({
         to: email,
         subject: 'Bienvenido al Help Desk - Credenciales de Acceso',
         htmlBody: `
-          <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-            <h2 style="color: #0b3ea1;">Bienvenido, ${nombre}</h2>
+          <div style="font-family:Arial,sans-serif;padding:20px;border:1px solid #e0e0e0;border-radius:5px;">
+            <h2 style="color:#0b3ea1;">Bienvenido, ${nombre}</h2>
             <p>Se ha creado tu cuenta para acceder a la Mesa de Ayuda.</p>
             <p><strong>Tus credenciales son:</strong></p>
             <ul>
@@ -904,24 +1023,22 @@ function createUser(email, nombre, rol, area, ubicacion, puesto, estatus) {
               <li><strong>Contraseña Temporal:</strong> ${password}</li>
             </ul>
             <p>Por favor, ingresa al sistema y cambia tu contraseña lo antes posible.</p>
-            <p><a href="${getScriptUrl()}" style="background-color: #0b3ea1; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Ir al Sistema</a></p>
-          </div>
-        `
+            <p style="margin-top:25px;text-align:center;">
+              <a href="${getScriptUrl()}" target="bexalta_helpdesk"
+                 style="background-color:#0b3ea1;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;">
+                Ir al Sistema
+              </a>
+            </p>
+          </div>`
       });
-    } catch (e) {
-      Logger.log('⚠️ Error enviando email: ' + e.message);
-    }
+    } catch (e) { Logger.log('⚠️ Error enviando email: ' + e.message); }
 
     return { ok: true };
   });
 }
 
-/**
- * Actualizar usuario existente
- */
-function updateUser(email, nombre, rol, area, ubicacion, puesto, estatus) {
+function updateUser(email, nombre, rol, area, ubicacion, puesto, estatus, ubicacionFisica) {
   if (!email) throw new Error('Email requerido');
-
   return withLock_(() => {
     const sh = getSheet(DB.USERS);
     const { headers, rows } = _readTableByHeader_(DB.USERS);
@@ -931,28 +1048,17 @@ function updateUser(email, nombre, rol, area, ubicacion, puesto, estatus) {
     if (idx < 0) throw new Error('Usuario no encontrado');
 
     const r = rows[idx];
-    // Actualizar campos
-    if (m.Nombre != null) r[m.Nombre] = nombre;
-    if (m.Rol != null) r[m.Rol] = rol;
-    if (m['Área'] != null) r[m['Área']] = area;
-    if (m['Ubicación'] != null) r[m['Ubicación']] = ubicacion;
-    if (m.Puesto != null) r[m.Puesto] = puesto;
-    
-    // Manejo de Estatus (si la columna existe, si no, intenta crearla o ignorarla)
-    if (m.Estatus != null) {
-        r[m.Estatus] = estatus;
-    } else {
-        // Opcional: Crear columna si no existe (avanzado) o ignorar
-    }
-
-    // Si se da de baja, podríamos borrar el hash para impedir login
-    if (estatus === 'Baja' && m.PasswordHash != null) {
-        r[m.PasswordHash] = 'DISABLED'; 
-    }
+    if (m.Nombre != null)          r[m.Nombre]          = nombre;
+    if (m.Rol != null)             r[m.Rol]             = rol;
+    if (m['Área'] != null)         r[m['Área']]         = area;
+    if (m['Ubicación'] != null)    r[m['Ubicación']]    = ubicacion;
+    if (m['UbicacionFisica'] != null) r[m['UbicacionFisica']] = ubicacionFisica || '';
+    if (m.Puesto != null)          r[m.Puesto]          = puesto;
+    if (m.Estatus != null)         r[m.Estatus]         = estatus;
+    if (estatus === 'Baja' && m.PasswordHash != null) r[m.PasswordHash] = 'DISABLED';
 
     sh.getRange(idx + 2, 1, 1, headers.length).setValues([r]);
     clearCache(DB.USERS);
-
     return { ok: true };
   });
 }
@@ -3752,81 +3858,254 @@ function scoreCategoria(textTokens, categoria) {
 // REEMPLAZAR la función existente (línea ~14308)
 // ============================================================
 
-function sugerirCategoriaIA(descripcion, ubicacionSeleccionada) {
-  if (!descripcion || descripcion.trim().length < 3) {
-    return { area: '', categoria: '', score: 0, confianza: 0, sugerencias: [] };
-  }
+function sugerirCategoriaIA(descripcion, ubicacion, area) {
+  try {
+    const cfg = getConfig();
+    const apiKey = cfg.groq_api_key;
+    
+    if (!apiKey) {
+      return { ok: false, error: 'Groq API key no configurada. Agrégala en Config como groq_api_key.' };
+    }
 
-  const { categories } = getCatalogosDesdeSheets();
-  const textTokens = normalizarTexto(descripcion + ' ' + (ubicacionSeleccionada || ''));
+    // Leer directamente de las hojas reales
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const allRows = [];
 
-  // Si no hay tokens útiles, retornar vacío
-  if (textTokens.length === 0) {
-    return { area: '', categoria: '', score: 0, confianza: 0, sugerencias: [] };
-  }
+    ['Categorias_TI', 'Categorias_Mtto'].forEach(function(sheetName) {
+      const sh = ss.getSheetByName(sheetName);
+      if (!sh || sh.getLastRow() <= 1) return;
+      const data = sh.getRange(2, 1, sh.getLastRow() - 1, 7).getValues();
+      data.forEach(function(r) { allRows.push(r); });
+    });
 
-  let ranking = [];
+    // Índices fijos: A=Nombre, B=Area, C=Ubicacion, D=Prioridad, E=SLA, F=Agente, G=Keywords
+    const IDX = { nombre: 0, area: 1, ubicacion: 2, prioridad: 3, sla: 4, agente: 5, keywords: 6 };
 
-  for (const area in categories) {
-    for (const cat of categories[area]) {
-      const score = scoreCategoria(textTokens, cat);
-      if (score > 0) {
-        ranking.push({ 
-          area, 
-          categoria: cat.nombre, 
-          score,
-          palabrasClave: cat.palabrasClave || []
+    const ubicNorm = (ubicacion || '').trim().toLowerCase();
+    const areaNorm = (area || '').trim().toLowerCase();
+
+    const nombresVistos = new Set();
+    let listaCategorias = '';
+    let totalCats = 0;
+
+    // ── PASO 1: Filtrar por área Y ubicación, incluir keywords ───────────────
+    allRows.forEach(function(r) {
+      const catNombre   = String(r[IDX.nombre]    || '').trim();
+      const catArea     = String(r[IDX.area]      || '').trim();
+      const catUbics    = String(r[IDX.ubicacion] || '').trim();
+      const catKeywords = String(r[IDX.keywords]  || '').trim();
+
+      if (!catNombre) return;
+
+      // Filtro por área
+      if (areaNorm && catArea.toLowerCase() !== areaNorm) return;
+
+      // Filtro por ubicación
+      if (ubicNorm) {
+        const ubicsDelCat = catUbics.split(',').map(function(u) { return u.trim().toLowerCase(); });
+        const coincide = ubicsDelCat.some(function(u) {
+          return u === ubicNorm || ubicNorm.includes(u) || u.includes(ubicNorm);
         });
+        if (!coincide) return;
+      }
+
+      // Deduplicar por nombre
+      if (nombresVistos.has(catNombre)) return;
+      nombresVistos.add(catNombre);
+
+      // Incluir keywords en la lista para que la IA las use
+      listaCategorias += catNombre +
+        (catKeywords ? ' [palabras clave: ' + catKeywords + ']' : '') + '\n';
+      totalCats++;
+    });
+
+    Logger.log('Filtro → Área: "' + area + '" | Ubicación: "' + ubicacion + '" | Categorías únicas: ' + totalCats);
+
+    // ── PASO 2: Fallback solo por área si ubicación no dio resultados ─────────
+    if (!listaCategorias && areaNorm) {
+      Logger.log('Sin resultados con ubicación, usando solo área...');
+      allRows.forEach(function(r) {
+        const catNombre   = String(r[IDX.nombre]   || '').trim();
+        const catArea     = String(r[IDX.area]     || '').trim();
+        const catKeywords = String(r[IDX.keywords] || '').trim();
+
+        if (!catNombre) return;
+        if (catArea.toLowerCase() !== areaNorm) return;
+        if (nombresVistos.has(catNombre)) return;
+        nombresVistos.add(catNombre);
+
+        listaCategorias += catNombre +
+          (catKeywords ? ' [palabras clave: ' + catKeywords + ']' : '') + '\n';
+        totalCats++;
+      });
+      Logger.log('Categorías únicas (solo área): ' + totalCats);
+    }
+
+    // ── PASO 3: Fallback catálogo completo deduplicado (máx 40) ──────────────
+    if (!listaCategorias) {
+      Logger.log('Sin filtros, usando catálogo completo...');
+      allRows.forEach(function(r) {
+        if (totalCats >= 40) return;
+        const catNombre   = String(r[IDX.nombre]   || '').trim();
+        const catArea     = String(r[IDX.area]     || '').trim();
+        const catKeywords = String(r[IDX.keywords] || '').trim();
+
+        if (!catNombre) return;
+        const key = catArea + '|' + catNombre;
+        if (nombresVistos.has(key)) return;
+        nombresVistos.add(key);
+
+        listaCategorias += catArea + '|' + catNombre +
+          (catKeywords ? ' [palabras clave: ' + catKeywords + ']' : '') + '\n';
+        totalCats++;
+      });
+    }
+
+    if (!listaCategorias) {
+      return { ok: false, error: 'No hay categorías configuradas para esta área y ubicación.' };
+    }
+
+    Logger.log('Lista final enviada a Groq:\n' + listaCategorias);
+
+    // ── PROMPT ────────────────────────────────────────────────────────────────
+    const contexto = area && ubicacion
+      ? 'ÁREA: ' + area + ' | UBICACIÓN: ' + ubicacion
+      : area
+        ? 'ÁREA: ' + area
+        : 'Sin filtro de área/ubicación';
+
+    const prompt =
+      'Clasifica este ticket de soporte.\n\n' +
+      'PROBLEMA: "' + descripcion + '"\n' +
+      contexto + '\n\n' +
+      'CATEGORÍAS DISPONIBLES (usa EXACTAMENTE estos nombres, no inventes otros):\n' +
+      listaCategorias + '\n' +
+      'Reglas estrictas:\n' +
+      '- Elige las 3 mejores categorías EXCLUSIVAMENTE de la lista anterior.\n' +
+      '- Copia el nombre EXACTO como aparece antes del corchete [palabras clave].\n' +
+      '- NO inventes nombres que no estén en la lista.\n' +
+      '- Usa las palabras clave entre corchetes para mejorar la precisión.\n' +
+      '- Si alguna palabra clave coincide directamente con el problema descrito, prioriza ESA categoría con mayor confianza.\n' +
+      '- Si ninguna coincide bien, elige la más cercana y baja la confianza.\n' +
+      '- Si la descripción es vaga, indica qué información falta en infoAdicional.\n' +
+      (area ? '- El área de todas las sugerencias debe ser: ' + area + '\n' : '') +
+      '\nResponde SOLO con JSON sin texto extra ni backticks:\n' +
+      '{"sugerencias":[' +
+        '{"area":"' + (area || 'área exacta') + '","categoria":"nombre exacto sin corchetes","confianza":85,"razon":"motivo breve"},' +
+        '{"area":"' + (area || 'área exacta') + '","categoria":"nombre exacto sin corchetes","confianza":70,"razon":"motivo"},' +
+        '{"area":"' + (area || 'área exacta') + '","categoria":"nombre exacto sin corchetes","confianza":55,"razon":"motivo"}' +
+      '],"infoAdicional":"si descripción vaga qué falta, si no vacío","resumen":"frase corta"}';
+
+    Logger.log('Prompt length (chars): ' + prompt.length);
+
+    // ── LLAMADA A GROQ ────────────────────────────────────────────────────────
+    const response = UrlFetchApp.fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { 'Authorization': 'Bearer ' + apiKey },
+      payload: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Eres un clasificador de tickets de soporte técnico. ' +
+              'DEBES elegir categorías ÚNICAMENTE de la lista proporcionada. ' +
+              'Usa las palabras clave para identificar la categoría más precisa. ' +
+              'Si una palabra clave coincide con el problema, esa categoría tiene prioridad. ' +
+              'NUNCA inventes categorías. Responde SOLO con JSON válido sin backticks.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.1,
+        max_tokens: 512
+      }),
+      muteHttpExceptions: true
+    });
+
+    const status = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    if (status !== 200) {
+      Logger.log('Groq error ' + status + ': ' + responseText);
+      return { ok: false, error: 'Error al conectar con IA: ' + status };
+    }
+
+    const data = JSON.parse(responseText);
+    const texto = data?.choices?.[0]?.message?.content;
+
+    if (!texto) return { ok: false, error: 'Groq no devolvió respuesta.' };
+
+    // ── PARSEAR JSON ──────────────────────────────────────────────────────────
+    let resultado;
+    try {
+      resultado = JSON.parse(texto);
+    } catch (e) {
+      try {
+        resultado = JSON.parse(texto.replace(/```json|```/g, '').trim());
+      } catch (e2) {
+        Logger.log('Error parseando Groq: ' + texto);
+        return { ok: false, error: 'Respuesta de IA no válida. Intenta de nuevo.' };
       }
     }
+
+    const sugerencias = resultado.sugerencias || [];
+    if (!sugerencias.length) {
+      return {
+        ok: false,
+        error: 'No se encontró categoría. ' + (resultado.infoAdicional || 'Describe el problema con más detalle.')
+      };
+    }
+
+    // ── VALIDAR que las sugerencias existan en la lista real ──────────────────
+    // Construir set de nombres válidos (sin las keywords)
+    const nombresValidos = new Set();
+    listaCategorias.split('\n').forEach(function(linea) {
+      const nombre = linea.split('[')[0].trim(); // Quitar la parte de keywords
+      if (nombre) nombresValidos.add(nombre);
+    });
+
+    const sugerenciasValidadas = sugerencias.filter(function(s) {
+      const existe = nombresValidos.has(s.categoria);
+      if (!existe) Logger.log('⚠️ IA inventó categoría no válida: "' + s.categoria + '" — descartada');
+      return existe;
+    });
+
+    // Si ninguna pasó la validación, devolver error
+    if (!sugerenciasValidadas.length) {
+      return {
+        ok: false,
+        error: 'La IA no pudo identificar una categoría válida del catálogo. Selecciona manualmente.'
+      };
+    }
+
+    // Forzar área correcta en todas las sugerencias
+    const sugerenciasFinales = sugerenciasValidadas.map(function(s) {
+      return area ? Object.assign({}, s, { area: area }) : s;
+    });
+
+    const primera = sugerenciasFinales[0];
+    Logger.log('✅ Groq: ' + primera.area + ' → ' + primera.categoria + ' (' + primera.confianza + '%)');
+
+    return {
+      ok:            true,
+      area:          primera.area,
+      categoria:     primera.categoria,
+      confianza:     primera.confianza,
+      razon:         primera.razon          || '',
+      infoAdicional: resultado.infoAdicional || '',
+      resumen:       resultado.resumen       || '',
+      sugerencias:   sugerenciasFinales
+    };
+
+  } catch (e) {
+    Logger.log('Error sugerirCategoriaIA: ' + e.message);
+    return { ok: false, error: 'Error interno: ' + e.message };
   }
-
-  ranking.sort((a, b) => b.score - a.score);
-
-  if (ranking.length === 0) {
-    return { area: '', categoria: '', score: 0, confianza: 0, sugerencias: [] };
-  }
-
-  const mejor = ranking[0];
-  const segundo = ranking[1];
-  const tercero = ranking[2];
-
-  // ========== CÁLCULO DE CONFIANZA MEJORADO ==========
-  let confianza = 50;
-  
-  // Base según score absoluto
-  if (mejor.score >= 80) confianza = 90;
-  else if (mejor.score >= 60) confianza = 80;
-  else if (mejor.score >= 40) confianza = 70;
-  else if (mejor.score >= 20) confianza = 60;
-  
-  // Ajustar por diferencia con el segundo
-  if (!segundo) {
-    confianza = Math.min(98, confianza + 15); // Única opción
-  } else {
-    const delta = mejor.score - segundo.score;
-    if (delta > 30) confianza = Math.min(95, confianza + 10);
-    else if (delta > 15) confianza = Math.min(90, confianza + 5);
-    else if (delta < 5) confianza = Math.max(40, confianza - 15); // Muy parecidos
-  }
-  // ===================================================
-
-  // Preparar sugerencias alternativas (top 3)
-  const sugerencias = ranking.slice(0, 3).map(r => ({
-    area: r.area,
-    categoria: r.categoria,
-    score: r.score
-  }));
-
-  return {
-    area: mejor.area,
-    categoria: mejor.categoria,
-    score: mejor.score,
-    confianza,
-    sugerencias
-  };
 }
-
 
 
 
@@ -5298,20 +5577,20 @@ function programarVisitaTicket(ticketId, fechaVisita, horaVisita, notasVisita, u
           { ticketId, folio, fecha: fechaVisita, hora: horaVisita });
           
         try {
-          const htmlVisita = `
-            <h2>📅 Visita Programada</h2>
-            <p>Se ha agendado una visita en sitio para atender tu solicitud.</p>
-            <div class="ticket-box">
-              <h3>Ticket #${folio}</h3>
-            </div>
-            <div class="info-row"><span class="info-label">Fecha programada:</span><span class="info-value" style="color:#0d9488;">${fechaFormateada}</span></div>
-            <div class="info-row"><span class="info-label">Hora aproximada:</span><span class="info-value" style="color:#0d9488;">${horaVisita}</span></div>
-            ${notasVisita ? `<div class="alert-box alert-info"><p style="margin:0;"><strong>Notas del agente:</strong> ${notasVisita}</p></div>` : ''}
-            <p style="color: #6b7280; font-size: 0.9em; margin-top: 15px;">Por favor asegúrate de estar disponible en el lugar y horario indicado.</p>
-            <p style="margin-top:25px;"><a href="${getScriptUrl()}" class="btn btn-primary" style="background-color:#0d9488; border-color:#0d9488;">🔗 Ver Ticket</a></p>
-          `;
-          enviarEmailNotificacion(reportaEmail, `📅 Visita programada - Ticket #${folio}`, htmlVisita);
-        } catch (e) { Logger.log('Error email visita: ' + e.message); }
+  const htmlVisita = `
+    <h2>📅 Visita Programada</h2>
+    <p>Se ha agendado una visita en sitio para atender tu solicitud.</p>
+    <div class="ticket-box">
+      <h3>Ticket #${folio}</h3>
+    </div>
+    <div class="info-row"><span class="info-label">Fecha programada:</span><span class="info-value" style="color:#0d9488;">${fechaFormateada}</span></div>
+    <div class="info-row"><span class="info-label">Hora aproximada:</span><span class="info-value" style="color:#0d9488;">${horaVisita}</span></div>
+    ${notasVisita ? `<div class="alert-box alert-info"><p style="margin:0;"><strong>Notas del agente:</strong> ${notasVisita}</p></div>` : ''}
+    <p style="color:#6b7280;font-size:0.9em;margin-top:15px;">Por favor asegúrate de estar disponible en el lugar y horario indicado.</p>
+    ${getBtnTicketHtml(ticketId, folio, '🔗 Ver Ticket')}
+  `;
+  enviarEmailNotificacion(reportaEmail, `📅 Visita programada - Ticket #${folio}`, htmlVisita);
+} catch (e) { Logger.log('Error email visita: ' + e.message); }
       }
       
       const cfg = getConfig();
@@ -6435,19 +6714,29 @@ function confirmarResolucion(ticketId, comentario, emailManual) {
         comentario || 'Usuario confirmó que el problema fue resuelto'
       );
 
-      // ========== NUEVO: Notificar al agente asignado ==========
       if (asignadoEmail) {
-        const cuerpoHtml = `<h2>✅ Resolución Confirmada</h2><p>El usuario ha confirmado que el problema fue resuelto satisfactoriamente.</p><div class="ticket-box"><h3>Ticket #${folio}</h3><p><strong>${titulo}</strong></p></div><div class="alert-box alert-success"><p style="margin:0;">🎉 <strong>¡Excelente trabajo!</strong> El ticket ha sido cerrado exitosamente.</p></div><p style="margin-top:25px;"><a href="${getScriptUrl()}" class="btn btn-success">🔗 Ver Ticket #${folio}</a></p>`;
-        
-        notificarAgenteTodosCanales(asignadoEmail, 'resolucion_confirmada', {
-          ticketId: ticketId,
-          folio: folio,
-          titulo: titulo,
-          tituloNotif: '✅ Resolución confirmada: #' + folio,
-          mensajeNotif: 'El usuario confirmó la resolución del ticket. Ticket cerrado.',
-          htmlCuerpo: cuerpoHtml
-        });
-      }
+  const cuerpoHtml = `
+    <h2>✅ Resolución Confirmada</h2>
+    <p>El usuario ha confirmado que el problema fue resuelto satisfactoriamente.</p>
+    <div class="ticket-box">
+      <h3>Ticket #${folio}</h3>
+      <p><strong>${titulo}</strong></p>
+    </div>
+    <div class="alert-box alert-success">
+      <p style="margin:0;">🎉 <strong>¡Excelente trabajo!</strong> El ticket ha sido cerrado exitosamente.</p>
+    </div>
+    ${getBtnTicketHtml(ticketId, folio, '🔗 Ver Ticket #' + folio)}
+  `;
+
+  notificarAgenteTodosCanales(asignadoEmail, 'resolucion_confirmada', {
+    ticketId: ticketId,
+    folio: folio,
+    titulo: titulo,
+    tituloNotif: '✅ Resolución confirmada: #' + folio,
+    mensajeNotif: 'El usuario confirmó la resolución del ticket. Ticket cerrado.',
+    htmlCuerpo: cuerpoHtml
+  });
+}
       // =========================================================
 
       clearCache(DB.TICKETS);
@@ -7560,8 +7849,9 @@ function manejarAusenciaAgente(emailAgente, nombreAgente, motivo, fechaFin) {
   try {
     const { headers: ticketHeaders, rows: ticketRows } = _readTableByHeader_(DB.TICKETS);
     const tm = _headerMap_(ticketHeaders);
+    const { headers: userHeaders, rows: userRows } = _readTableByHeader_(DB.USERS);
+    const um = _headerMap_(userHeaders);
 
-    // 1. Tickets activos del agente — comparar contra username (columna Email de Usuarios)
     const usernameLower = emailAgente.toLowerCase();
     const ticketsActivos = ticketRows.filter(r => {
       const asignado = String(r[tm.AsignadoA] || '').toLowerCase();
@@ -7570,39 +7860,28 @@ function manejarAusenciaAgente(emailAgente, nombreAgente, motivo, fechaFin) {
              !['cerrado', 'resuelto', 'cancelado'].includes(estatus);
     });
 
-    if (ticketsActivos.length === 0) {
-      return { ticketsReasignados: 0, alertasEnviadas: 0 };
-    }
+    if (ticketsActivos.length === 0) return { ticketsReasignados: 0, alertasEnviadas: 0 };
 
-    // 2. Obtener área del agente y gerente correspondiente
     const agenteInfo = getUser(emailAgente);
     const areaAgente = agenteInfo.area || '';
-    const gerenteArea = getGerenteDelArea(areaAgente);
+    const esPresencial = ['mantenimiento', 'mtto'].includes(areaAgente.toLowerCase());
 
-    // username  → se guarda en AsignadoA del ticket
-    // emailReal → se usa para notificaciones (Email, Telegram, campanita)
-    let nuevoAgenteUsername = '';
-    let nuevoAgenteEmail    = '';  // email real para notificaciones
-    let nuevoAgenteNombre   = '';
-
-    if (gerenteArea && gerenteArea.username &&
-        gerenteArea.username.toLowerCase() !== usernameLower) {
-      nuevoAgenteUsername = gerenteArea.username;  // ej: RGNava
-      nuevoAgenteEmail    = gerenteArea.email;     // ej: rgnava@bexalta.com
-      nuevoAgenteNombre   = gerenteArea.nombre || gerenteArea.username;
-    } else {
-      // Fallback: admin disponible con menos carga
-      const admins = getAdmins(); // retorna { email: username, nombre }
-      if (admins.length > 0) {
-        nuevoAgenteUsername = admins[0].email;
-        nuevoAgenteEmail    = _resolverEmailUsuario_(admins[0].email);
-        nuevoAgenteNombre   = admins[0].nombre || 'Administrador';
-      }
+    // ── Helper: ciudad física de un username ────────────────────────────────
+    function getCiudadFisica(username) {
+      const row = userRows.find(r => String(r[um.Email] || '').toLowerCase() === username.toLowerCase());
+      if (!row) return '';
+      if (um['UbicacionFisica'] != null) return String(row[um['UbicacionFisica']] || '').toLowerCase().trim();
+      // fallback: primera ciudad del campo Ubicación
+      return String(row[um['Ubicación']] || '').split(',')[0].trim().toLowerCase();
     }
 
-    if (!nuevoAgenteUsername) {
-      Logger.log('manejarAusenciaAgente: sin destinatario para reasignar.');
-      return { ticketsReasignados: 0, alertasEnviadas: 0 };
+    // ── Helper: disponibilidad ──────────────────────────────────────────────
+    function esDisponible(username) {
+      const row = userRows.find(r => String(r[um.Email] || '').toLowerCase() === username.toLowerCase());
+      if (!row) return false;
+      if (um.Disponible == null) return true;
+      const d = row[um.Disponible];
+      return d !== false && String(d).toLowerCase() !== 'false' && String(d).toLowerCase() !== 'no';
     }
 
     let ticketsReasignados = 0;
@@ -7610,112 +7889,109 @@ function manejarAusenciaAgente(emailAgente, nombreAgente, motivo, fechaFin) {
     const sh = getSheet(DB.TICKETS);
     const listaTicketsTelegram = [];
 
-    // 3. Reasignar cada ticket
-    ticketsActivos.forEach(ticketRow => {
-      const ticketId   = ticketRow[tm.ID];
-      const folio      = ticketRow[tm.Folio];
-      const titulo     = ticketRow[tm['Título']] || '';
-      const reportaEmail = String(ticketRow[tm.ReportaEmail] || '').trim();
+    // Procesar cada ticket activo individualmente
+    // Para mantenimiento: buscar agente en la misma ciudad del TICKET
+    ticketsActivos.forEach((ticketRow, idx) => {
+      const ticketId  = String(ticketRow[tm.ID] || '');
+      const folio     = ticketRow[tm.Folio] || '';
+      const ubicacionTicket = String(ticketRow[tm['Ubicación']] || '').toLowerCase().trim();
+      const tituloTicket    = String(ticketRow[tm['Título']] || '');
 
-      const idx = ticketRows.indexOf(ticketRow);
-      if (idx < 0) return;
+      let nuevoAgenteUsername = '';
+      let nuevoAgenteEmail    = '';
+      let nuevoAgenteNombre   = '';
 
-      // A. Guardar username en AsignadoA (no email)
-      ticketRow[tm.AsignadoA]              = nuevoAgenteUsername;
-      ticketRow[tm['ÚltimaActualización']] = new Date();
-      sh.getRange(idx + 2, 1, 1, ticketHeaders.length).setValues([ticketRow]);
+      if (esPresencial && ubicacionTicket) {
+        // ── MANTENIMIENTO: buscar agente en la misma ciudad del ticket ──────
+        const candidatos = userRows.filter(r => {
+          const rol = String(r[um.Rol] || '').toLowerCase();
+          if (rol !== 'agente_mantenimiento') return false;
+          if (String(r[um.Email] || '').toLowerCase() === usernameLower) return false; // excluir ausente
+          if (!esDisponible(String(r[um.Email] || ''))) return false;
+          const ciudad = getCiudadFisica(String(r[um.Email] || ''));
+          return ciudad === ubicacionTicket;
+        });
 
-      registrarBitacora(
-        ticketId,
-        'Reasignación por ausencia',
-        `De ${nombreAgente} a ${nuevoAgenteNombre} (Gerencia). Motivo: ${motivo}`
-      );
-
-      listaTicketsTelegram.push(`• #<b>${folio}</b>: ${titulo}`);
-
-      // B. Notificar al usuario que reportó
-      if (reportaEmail) {
-        crearNotificacion(
-          reportaEmail, 'asignacion', 'Cambio de Agente',
-          `Tu ticket #${folio} fue asignado temporalmente a Gerencia por ausencia de tu agente.`,
-          ticketId
-        );
-
-        try {
-          enviarEmailNotificacion(reportaEmail,
-            `Actualización Ticket #${folio} - Cambio de Agente`,
-            `<h2>🔄 Actualización en tu Ticket</h2>
-             <div style="background:#f8fafc;padding:15px;border-left:4px solid #3b82f6;margin-bottom:20px;">
-               <p style="margin:0;"><strong>Ticket #${folio}</strong>: ${titulo}</p>
-             </div>
-             <p>Tu agente asignado (<strong>${nombreAgente}</strong>) se encuentra ausente.</p>
-             <p>El ticket fue derivado a Gerencia, quien lo reasignará a la brevedad.</p>`
-          );
-        } catch(e) { Logger.log('Email usuario ausencia: ' + e.message); }
-
-        try {
-          const chatUser = getTelegramChatIdGrupo(reportaEmail);
-          if (chatUser) telegramSendToGrupo(chatUser,
-            `🔄 <b>Cambio de Agente</b>\nTu ticket <code>#${folio}</code> fue derivado a Gerencia ` +
-            `por ausencia de tu agente. Pronto te reasignarán.`
-          );
-        } catch(e) {}
+        if (candidatos.length > 0) {
+          // Elegir el de menor carga
+          const conCarga = candidatos.map(r => {
+            const usr = String(r[um.Email] || '').trim();
+            const carga = ticketRows.filter(t =>
+              String(t[tm.AsignadoA] || '').toLowerCase() === usr.toLowerCase() &&
+              !['cerrado','resuelto','cancelado'].includes(String(t[tm.Estatus] || '').toLowerCase())
+            ).length;
+            return { username: usr, nombre: r[um.Nombre] || usr, carga };
+          });
+          conCarga.sort((a, b) => a.carga - b.carga);
+          nuevoAgenteUsername = conCarga[0].username;
+          nuevoAgenteEmail    = _resolverEmailUsuario_(nuevoAgenteUsername);
+          nuevoAgenteNombre   = conCarga[0].nombre;
+          Logger.log(`[Ausencia] Ticket ${folio} → agente en misma ciudad: ${nuevoAgenteUsername}`);
+        } else {
+          // Sin agente en esa ciudad → gerente del área
+          Logger.log(`[Ausencia] Sin agente de mantenimiento en "${ubicacionTicket}" → gerente`);
+        }
       }
 
-      ticketsReasignados++;
+      // Fallback para sistemas o si no se encontró agente presencial
+      if (!nuevoAgenteUsername) {
+        const gerenteArea = getGerenteDelArea(areaAgente);
+        if (gerenteArea && gerenteArea.username &&
+            gerenteArea.username.toLowerCase() !== usernameLower) {
+          nuevoAgenteUsername = gerenteArea.username;
+          nuevoAgenteEmail    = gerenteArea.email;
+          nuevoAgenteNombre   = gerenteArea.nombre || gerenteArea.username;
+        } else {
+          const admins = getAdmins();
+          if (admins.length > 0) {
+            nuevoAgenteUsername = admins[0].email;
+            nuevoAgenteEmail    = _resolverEmailUsuario_(admins[0].email);
+            nuevoAgenteNombre   = admins[0].nombre || 'Administrador';
+          }
+        }
+      }
+
+      if (!nuevoAgenteUsername) {
+        Logger.log(`[Ausencia] Sin destinatario para ticket ${folio}`);
+        return;
+      }
+
+      // Reasignar en la hoja
+      const rowIdx = ticketRows.findIndex(r => String(r[tm.ID] || '') === ticketId);
+      if (rowIdx >= 0) {
+        sh.getRange(rowIdx + 2, tm.AsignadoA + 1).setValue(nuevoAgenteUsername);
+        sh.getRange(rowIdx + 2, tm['ÚltimaActualización'] + 1).setValue(new Date());
+        registrarBitacora(ticketId, 'Reasignación por ausencia',
+          `De "${emailAgente}" a "${nuevoAgenteUsername}". Motivo: ${motivo || 'Ausencia'}`);
+        listaTicketsTelegram.push(`#${folio} - ${tituloTicket}`);
+        ticketsReasignados++;
+      }
+
+      // Notificar al nuevo agente
+      try {
+        notifyUser(nuevoAgenteEmail, 'reasignacion', 'Ticket reasignado por ausencia',
+          `El ticket #${folio} fue reasignado a ti por ausencia de ${nombreAgente}.`,
+          { ticketId, folio });
+      } catch(e) {}
     });
 
-    clearCache(DB.TICKETS);
-
-    // 4. Notificar al gerente/admin que recibe los tickets
-    // Todas las notificaciones usan nuevoAgenteEmail (email real)
-    if (ticketsReasignados > 0 && nuevoAgenteEmail) {
-
-      const msgTelegram =
-        `⚠️ <b>AGENTE AUSENTE</b>\n\n` +
-        `👤 <b>${nombreAgente}</b> marcó su estado como <b>No Disponible</b>.\n` +
-        `📝 <b>Motivo:</b> ${motivo}\n` +
-        (fechaFin ? `📅 <b>Regreso est.:</b> ${fechaFin}\n\n` : '\n') +
-        `🔄 Se te asignaron <b>${ticketsReasignados} tickets</b> para que los reasignes o atiendas:\n\n` +
-        listaTicketsTelegram.join('\n');
-
+    if (ticketsReasignados > 0) {
+      clearCache(DB.TICKETS);
+      // Notificar al gerente del área
       try {
-        const chatIdGerente = getTelegramChatIdGrupo(nuevoAgenteEmail);
-        if (chatIdGerente) telegramSendToGrupo(chatIdGerente, msgTelegram);
-      } catch(e) { Logger.log('Telegram gerente ausencia: ' + e.message); }
-
-      try {
-        const listaHtml = listaTicketsTelegram
-          .map(t => t.replace(/<b>/g, '<strong>').replace(/<\/b>/g, '</strong>'))
-          .join('<br>');
-
-        enviarEmailNotificacion(
-          nuevoAgenteEmail,
-          `⚠️ Ausencia: ${nombreAgente} — ${ticketsReasignados} tickets por reasignar`,
-          `<h2>⚠️ Alerta de Ausencia de Agente</h2>
-           <div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:15px;margin-bottom:20px;">
-             <p style="margin:0;">El agente <strong>${nombreAgente}</strong> se marcó como No Disponible.</p>
-             <p style="margin:5px 0 0;"><strong>Motivo:</strong> ${motivo}</p>
-             ${fechaFin ? `<p style="margin:5px 0 0;"><strong>Regreso estimado:</strong> ${fechaFin}</p>` : ''}
-           </div>
-           <p>Los siguientes <strong>${ticketsReasignados} tickets activos</strong> han sido derivados 
-              a tu bandeja para que los reasignes o atiendas:</p>
-           <div style="background:#f8fafc;padding:15px;border-radius:8px;line-height:1.8;">
-             ${listaHtml}
-           </div>`
-        );
+        const gerenteArea = getGerenteDelArea(areaAgente);
+        if (gerenteArea && gerenteArea.email) {
+          const listaHtml = listaTicketsTelegram.map(t => `<li>${t}</li>`).join('');
+          enviarEmailNotificacion(gerenteArea.email,
+            `Ausencia: ${nombreAgente} — ${ticketsReasignados} tickets reasignados`,
+            `<h2>⚠️ Agente con Ausencia</h2>
+             <p><strong>${nombreAgente}</strong> registró ausencia. Motivo: ${motivo || 'No especificado'}.</p>
+             ${fechaFin ? `<p>Regreso estimado: ${fechaFin}</p>` : ''}
+             <ul>${listaHtml}</ul>`
+          );
+          alertasEnviadas++;
+        }
       } catch(e) { Logger.log('Email gerente ausencia: ' + e.message); }
-
-      try {
-        crearNotificacion(
-          nuevoAgenteEmail, 'alerta',
-          `Ausencia de ${nombreAgente}`,
-          `Tienes ${ticketsReasignados} tickets pendientes por reasignar.`,
-          ''
-        );
-      } catch(e) {}
-
-      alertasEnviadas++;
     }
 
     return { ticketsReasignados, alertasEnviadas };
@@ -7844,11 +8120,6 @@ function getAgentesDisponiblesPorArea(area, excluirEmail) {
 // Reemplazar la función asignarAgenteEquilibrado existente
 // ============================================================================
 
-/**
- * asignarAgenteEquilibrado corregido:
- * - Fallback es el gerente del área (username), no el primer admin
- * - Verifica disponibilidad del gerente antes de asignarlo
- */
 function asignarAgenteEquilibrado(area, ubicacionTicket, categoria) {
   const { headers: userHeaders, rows: userRows } = _readTableByHeader_(DB.USERS);
   const um = _headerMap_(userHeaders);
@@ -7859,123 +8130,176 @@ function asignarAgenteEquilibrado(area, ubicacionTicket, categoria) {
   const ubicacionLower = (ubicacionTicket || '').toLowerCase().trim();
   const categoriaLower = (categoria || '').toLowerCase().trim();
 
-  Logger.log(`🔍 Buscando agente: Área="${area}", Ubicación="${ubicacionTicket}", Categoría="${categoria}"`);
+  // ¿Es área presencial? Mantenimiento requiere presencia física.
+  // Sistemas puede resolver remotamente → ubicación es preferencia, no restricción.
+  const esPresencial = ['mantenimiento', 'mtto'].includes(areaLower);
 
-  // ── Helper: verificar disponibilidad de un username en userRows ──────────
+  Logger.log(`🔍 Buscando agente: Área="${area}" (${esPresencial ? 'PRESENCIAL' : 'remoto'}), Ubicación="${ubicacionTicket}", Categoría="${categoria}"`);
+
+  // ── Helper: verificar disponibilidad ────────────────────────────────────
   function esDisponible(username) {
     if (!username) return false;
-    const usernameLower = username.toLowerCase();
-    const row = userRows.find(r => String(r[um.Email] || '').toLowerCase() === usernameLower);
+    const row = userRows.find(r => String(r[um.Email] || '').toLowerCase() === username.toLowerCase());
     if (!row) return false;
     if (um.Disponible == null) return true;
     const d = row[um.Disponible];
     return d !== false && String(d).toLowerCase() !== 'false' && String(d).toLowerCase() !== 'no';
   }
 
+  // ── Helper: obtener ubicación física del agente ──────────────────────────
+  function getUbicacionFisica(username) {
+    if (!username) return '';
+    const row = userRows.find(r => String(r[um.Email] || '').toLowerCase() === username.toLowerCase());
+    if (!row) return '';
+    // Leer columna UbicacionFisica si existe, sino fallback a Ubicación
+    if (um['UbicacionFisica'] != null) {
+      return String(row[um['UbicacionFisica']] || '').toLowerCase().trim();
+    }
+    // Fallback: primera ubicación del campo Ubicación
+    const ubics = String(row[um['Ubicación']] || '').split(',');
+    return ubics.length > 0 ? ubics[0].trim().toLowerCase() : '';
+  }
+
   // ── PRIORIDAD 0: Agente específico de categoría ──────────────────────────
   if (categoriaLower && area) {
     const agenteCategoria = buscarAgenteEnCategoria(area, categoriaLower, ubicacionLower);
     if (agenteCategoria && esDisponible(agenteCategoria)) {
-      Logger.log(`✅ Por categoría: ${agenteCategoria}`);
-      return agenteCategoria;
+      // Para mantenimiento: validar que el agente de categoría también esté en la ciudad
+      if (esPresencial && ubicacionLower) {
+        const ubicFisica = getUbicacionFisica(agenteCategoria);
+        if (ubicFisica && ubicFisica !== ubicacionLower) {
+          Logger.log(`⚠️ Agente de categoría ${agenteCategoria} está en ${ubicFisica}, no en ${ubicacionLower}. Ignorando.`);
+        } else {
+          Logger.log(`✅ Por categoría (presencial OK): ${agenteCategoria}`);
+          return agenteCategoria;
+        }
+      } else {
+        Logger.log(`✅ Por categoría: ${agenteCategoria}`);
+        return agenteCategoria;
+      }
     }
     if (agenteCategoria) Logger.log(`⚠️ Agente de categoría no disponible: ${agenteCategoria}`);
   }
 
   // ── Determinar rol requerido ─────────────────────────────────────────────
   let rolRequerido = '';
-  if (['sistemas','ti','tecnología'].includes(areaLower))        rolRequerido = 'agente_sistemas';
-  else if (['mantenimiento','mtto'].includes(areaLower))         rolRequerido = 'agente_mantenimiento';
+  if (['sistemas', 'ti', 'tecnología'].includes(areaLower))   rolRequerido = 'agente_sistemas';
+  else if (['mantenimiento', 'mtto'].includes(areaLower))      rolRequerido = 'agente_mantenimiento';
 
-  // ── Filtrar agentes disponibles del área ─────────────────────────────────
+  // ── Filtrar agentes del área disponibles ─────────────────────────────────
   const agentesDelArea = userRows.filter(r => {
     const rol = String(r[um.Rol] || '').toLowerCase().trim();
     if (rolRequerido && rol !== rolRequerido) return false;
-    if (!rolRequerido && !['agente_sistemas','agente_mantenimiento'].includes(rol)) return false;
-
-    // Disponibilidad
+    if (!rolRequerido && !rol.includes('agente')) return false;
     if (um.Disponible != null) {
       const d = r[um.Disponible];
-      if (d === false || String(d).toLowerCase() === 'false' || String(d).toLowerCase() === 'no') {
-        Logger.log(`   ⏸️ No disponible: ${r[um.Email]}`);
-        return false;
-      }
+      if (d === false || String(d).toLowerCase() === 'false' || String(d).toLowerCase() === 'no') return false;
     }
     return true;
   }).map(r => ({
-    username:    String(r[um.Email] || '').trim(),   // username para AsignadoA
-    nombre:      r[um.Nombre] || '',
-    rol:         r[um.Rol]    || '',
-    ubicaciones: String(r[um['Ubicación']] || '').toLowerCase().split(',').map(u => u.trim()).filter(Boolean)
+    username:        String(r[um.Email] || '').trim(),
+    nombre:          r[um.Nombre] || '',
+    rol:             r[um.Rol] || '',
+    ubicaciones:     String(r[um['Ubicación']] || '').toLowerCase().split(',').map(u => u.trim()).filter(Boolean),
+    ubicacionFisica: um['UbicacionFisica'] != null
+                       ? String(r[um['UbicacionFisica']] || '').toLowerCase().trim()
+                       : String(r[um['Ubicación']] || '').split(',')[0].trim().toLowerCase()
   }));
 
-  Logger.log(`📊 Agentes disponibles en "${area}": ${agentesDelArea.length}`);
-
-  // ── Contar tickets activos por username ──────────────────────────────────
+  // ── Contar carga por agente ───────────────────────────────────────────────
   const carga = {};
-  agentesDelArea.forEach(a => carga[a.username] = 0);
+  agentesDelArea.forEach(a => { carga[a.username] = 0; });
   ticketRows.forEach(r => {
     const asig   = String(r[tm.AsignadoA] || '').trim();
     const estatus = String(r[tm.Estatus] || '').toLowerCase();
-    if (carga[asig] != null && !['cerrado','resuelto'].includes(estatus)) carga[asig]++;
+    if (carga[asig] != null && !['cerrado', 'resuelto'].includes(estatus)) carga[asig]++;
   });
 
-  // ── PRIORIDAD 1: Área + Ubicación ────────────────────────────────────────
-  if (ubicacionLower && agentesDelArea.length > 0) {
-    const conUbicacion = agentesDelArea
-      .filter(a => a.ubicaciones.includes(ubicacionLower))
-      .sort((a, b) => carga[a.username] - carga[b.username]);
+  if (esPresencial && ubicacionLower) {
+    // ════════════════════════════════════════════════════════════════════════
+    // MANTENIMIENTO: RESTRICCIÓN DURA — solo agentes en la misma ciudad física
+    // ════════════════════════════════════════════════════════════════════════
 
-    if (conUbicacion.length > 0) {
-      Logger.log(`✅ Por área+ubicación: ${conUbicacion[0].username} (${carga[conUbicacion[0].username]} tickets)`);
-      return conUbicacion[0].username;
+    const enCiudad = agentesDelArea
+      .filter(a => a.ubicacionFisica === ubicacionLower)
+      .sort((a, b) => (carga[a.username] || 0) - (carga[b.username] || 0));
+
+    if (enCiudad.length > 0) {
+      Logger.log(`✅ [PRESENCIAL] Por ciudad física "${ubicacionLower}": ${enCiudad[0].username} (${carga[enCiudad[0].username]} tickets)`);
+      return enCiudad[0].username;
     }
-    Logger.log(`⚠️ Sin agentes con ubicación "${ubicacionTicket}"`);
-  }
 
-  // ── PRIORIDAD 2: Área + menor carga ──────────────────────────────────────
-  if (agentesDelArea.length > 0) {
-    const elegido = agentesDelArea.sort((a, b) => carga[a.username] - carga[b.username])[0];
-    Logger.log(`✅ Por menor carga: ${elegido.username} (${carga[elegido.username]} tickets)`);
-    return elegido.username;
-  }
-
-  // ── PRIORIDAD 3: Gerente del área (no primer admin) ───────────────────────
-  Logger.log(`⚠️ Sin agentes disponibles en "${area}", buscando gerente...`);
-  const gerente = getGerenteDelArea(area);
-  if (gerente && gerente.username) {
-    if (esDisponible(gerente.username)) {
-      Logger.log(`✅ Asignado a GERENTE del área: ${gerente.username}`);
+    // Sin agentes presenciales en esa ciudad → escalar al gerente del área
+    Logger.log(`🚫 [PRESENCIAL] Sin agentes de mantenimiento en "${ubicacionLower}". Escalando a gerente...`);
+    const gerente = getGerenteDelArea(area);
+    if (gerente && gerente.username && esDisponible(gerente.username)) {
+      Logger.log(`✅ Escalado a GERENTE: ${gerente.username}`);
       return gerente.username;
     }
-    Logger.log(`⚠️ Gerente ${gerente.username} tampoco disponible, buscando admin...`);
-  }
 
-  // ── PRIORIDAD 4: Admin disponible con menos carga (último recurso) ────────
-  const admins = userRows
-    .filter(r => {
-      const rol = String(r[um.Rol] || '').toLowerCase();
-      if (rol !== 'admin') return false;
-      if (um.Disponible != null) {
-        const d = r[um.Disponible];
-        if (d === false || String(d).toLowerCase() === 'false' || String(d).toLowerCase() === 'no') return false;
-      }
-      return true;
-    })
-    .map(r => ({ username: String(r[um.Email] || '').trim(), nombre: r[um.Nombre] || '' }));
+    // Si el gerente tampoco está disponible → dejar sin asignar (alerta visible)
+    Logger.log(`❌ [PRESENCIAL] Gerente no disponible. Ticket SIN ASIGNAR en ${ubicacionLower}.`);
+    return '';
 
-  if (admins.length > 0) {
-    admins.forEach(a => {
-      if (carga[a.username] == null) {
-        carga[a.username] = ticketRows.filter(r =>
-          String(r[tm.AsignadoA] || '').trim() === a.username &&
-          !['cerrado','resuelto'].includes(String(r[tm.Estatus] || '').toLowerCase())
-        ).length;
+  } else {
+    // ════════════════════════════════════════════════════════════════════════
+    // SISTEMAS u otras áreas: PREFERENCIA de ubicación, no restricción dura
+    // ════════════════════════════════════════════════════════════════════════
+
+    // PRIORIDAD 1: Área + ubicación coincide en campo Ubicación (puede atender esa ciudad)
+    if (ubicacionLower && agentesDelArea.length > 0) {
+      const conUbicacion = agentesDelArea
+        .filter(a => a.ubicaciones.includes(ubicacionLower))
+        .sort((a, b) => (carga[a.username] || 0) - (carga[b.username] || 0));
+
+      if (conUbicacion.length > 0) {
+        Logger.log(`✅ Por área+ubicación: ${conUbicacion[0].username} (${carga[conUbicacion[0].username]} tickets)`);
+        return conUbicacion[0].username;
       }
-    });
-    admins.sort((a, b) => (carga[a.username] || 0) - (carga[b.username] || 0));
-    Logger.log(`✅ Asignado a ADMIN: ${admins[0].username}`);
-    return admins[0].username;
+      Logger.log(`⚠️ Sin agentes con ubicación "${ubicacionTicket}", usando menor carga...`);
+    }
+
+    // PRIORIDAD 2: Menor carga del área (cualquier ubicación)
+    if (agentesDelArea.length > 0) {
+      const elegido = agentesDelArea.sort((a, b) => (carga[a.username] || 0) - (carga[b.username] || 0))[0];
+      Logger.log(`✅ Por menor carga: ${elegido.username} (${carga[elegido.username]} tickets)`);
+      return elegido.username;
+    }
+
+    // PRIORIDAD 3: Gerente del área
+    Logger.log(`⚠️ Sin agentes disponibles en "${area}", buscando gerente...`);
+    const gerente = getGerenteDelArea(area);
+    if (gerente && gerente.username && esDisponible(gerente.username)) {
+      Logger.log(`✅ Asignado a GERENTE: ${gerente.username}`);
+      return gerente.username;
+    }
+
+    // PRIORIDAD 4: Admin con menos carga
+    const admins = userRows
+      .filter(r => {
+        const rol = String(r[um.Rol] || '').toLowerCase();
+        if (rol !== 'admin') return false;
+        if (um.Disponible != null) {
+          const d = r[um.Disponible];
+          if (d === false || String(d).toLowerCase() === 'false' || String(d).toLowerCase() === 'no') return false;
+        }
+        return true;
+      })
+      .map(r => ({ username: String(r[um.Email] || '').trim(), nombre: r[um.Nombre] || '' }));
+
+    if (admins.length > 0) {
+      admins.forEach(a => {
+        if (carga[a.username] == null) {
+          carga[a.username] = ticketRows.filter(r =>
+            String(r[tm.AsignadoA] || '').trim() === a.username &&
+            !['cerrado', 'resuelto'].includes(String(r[tm.Estatus] || '').toLowerCase())
+          ).length;
+        }
+      });
+      admins.sort((a, b) => (carga[a.username] || 0) - (carga[b.username] || 0));
+      Logger.log(`✅ Asignado a ADMIN: ${admins[0].username}`);
+      return admins[0].username;
+    }
   }
 
   Logger.log(`❌ Sin agente disponible para asignar`);
@@ -8062,144 +8386,107 @@ function verificarAgenteDisponible(emailAgente, userRows, um) {
 
 
 function getAgentesParaReasignar(areaTicket, ubicacionTicket) {
-  var _udata = _readTableByHeader_(DB.USERS);
-  var userHeaders = _udata.headers;
-  var userRows = _udata.rows;
-  var um = _headerMap_(userHeaders);
-  
-  var _tdata = _readTableByHeader_(DB.TICKETS);
-  var ticketHeaders = _tdata.headers;
-  var ticketRows = _tdata.rows;
-  var tm = _headerMap_(ticketHeaders);
-  
-  var areaTicketLower = (areaTicket || '').toLowerCase().trim();
-  var ubicacionLower = (ubicacionTicket || '').toLowerCase().trim();
-  
-  var agentesArea = [];  // Agentes que matchean el área del ticket
-  var admins = [];       // Admins como fallback al final
-  
-  Logger.log('[getAgentesParaReasignar] Buscando para área: "' + areaTicket + '", ubicación: "' + ubicacionTicket + '"');
-  
-  userRows.forEach(function(r) {
-    var rolRaw = String(r[um.Rol] || '').trim();
-    var rolLower = rolRaw.toLowerCase();
-    
-    // Campo Área del usuario (puede ser "Sistemas", "Mantenimiento", etc.)
-    var areaUsuario = String(r[um['Área']] || r[um.Area] || '').toLowerCase().trim();
-    
-    // Verificar si está activo
-    var activo = String(r[um.Activo] || 'si').toLowerCase();
+  const { headers: userHeaders, rows: userRows } = _readTableByHeader_(DB.USERS);
+  const um = _headerMap_(userHeaders);
+  const { headers: ticketHeaders, rows: ticketRows } = _readTableByHeader_(DB.TICKETS);
+  const tm = _headerMap_(ticketHeaders);
+
+  const areaTicketLower    = (areaTicket    || '').toLowerCase().trim();
+  const ubicacionLower     = (ubicacionTicket || '').toLowerCase().trim();
+  const esPresencial       = ['mantenimiento', 'mtto'].includes(areaTicketLower);
+
+  const agentesArea = [];
+  const admins      = [];
+
+  userRows.forEach(r => {
+    const rolRaw    = String(r[um.Rol] || '').trim();
+    const rolLower  = rolRaw.toLowerCase();
+    const areaUsuario = String(r[um['Área']] || r[um.Area] || '').toLowerCase().trim();
+    const activo    = String(r[um.Activo] || 'si').toLowerCase();
+
     if (activo === 'no' || activo === 'false' || activo === 'inactivo') return;
-    
-    // Clasificar: ¿es admin? ¿es agente? ¿es gerente?
-    var esAdmin = rolLower === 'admin' || rolLower.includes('admin');
-    var esAgente = rolLower.includes('agente');
-    var esGerente = rolLower.includes('gerente');
-    
-    // Solo incluir roles relevantes (agentes, gerentes, admins)
+
+    const esAdmin  = rolLower === 'admin' || rolLower.includes('admin');
+    const esAgente = rolLower.includes('agente');
+    const esGerente = rolLower.includes('gerente');
+
     if (!esAdmin && !esAgente && !esGerente) return;
-    
-    // Si es admin → va al grupo de fallback
+
     if (esAdmin && !esAgente) {
-      // Admin puro (sin rol de agente)
-      admins.push(buildAgenteInfo(r, um, rolRaw, true));
+      admins.push(buildInfo(r, um, rolRaw, true));
       return;
     }
-    
-    // Para agentes/gerentes: verificar que coincidan con el área del ticket
-    var coincideArea = false;
-    
-    if (areaTicketLower) {
-      // Método 1: El ROL contiene el nombre del área
-      // Ej: 'agente_sistemas' contiene 'sistemas', 'agente_mantenimiento' contiene 'mantenimiento'
-      if (rolLower.includes(areaTicketLower)) {
-        coincideArea = true;
-      }
-      
-      // Método 2: El campo ÁREA del usuario coincide
-      // Ej: Área = "Sistemas" y ticket es de "Sistemas"
-      if (areaUsuario === areaTicketLower) {
-        coincideArea = true;
-      }
-      
-      // Método 3: El campo Área contiene el nombre (para áreas compuestas)
-      // Ej: Área = "Sistemas,Mantenimiento" contiene "sistemas"
-      if (areaUsuario.indexOf(areaTicketLower) >= 0) {
-        coincideArea = true;
-      }
-    } else {
-      // Si el ticket no tiene área, incluir todos los agentes
-      coincideArea = true;
-    }
-    
-    if (coincideArea) {
-      agentesArea.push(buildAgenteInfo(r, um, rolRaw, false));
-    }
+
+    const coincideArea = !areaTicketLower ||
+      rolLower.includes(areaTicketLower) ||
+      areaUsuario === areaTicketLower ||
+      areaUsuario.includes(areaTicketLower);
+
+    if (coincideArea) agentesArea.push(buildInfo(r, um, rolRaw, false));
   });
-  
-  // Contar tickets activos por agente para mostrar carga de trabajo
-  var todosAgentes = agentesArea.concat(admins);
-  todosAgentes.forEach(function(a) {
-    a.ticketsActivos = ticketRows.filter(function(r) {
-      var asignado = String(r[tm.AsignadoA] || '').toLowerCase().trim();
-      var estatus = String(r[tm.Estatus] || '').toLowerCase().trim();
-      return asignado === a.email.toLowerCase() && 
-             ['cerrado', 'resuelto', 'cancelado'].indexOf(estatus) < 0;
+
+  // Contar carga
+  const todos = agentesArea.concat(admins);
+  todos.forEach(a => {
+    a.ticketsActivos = ticketRows.filter(r => {
+      const asig   = String(r[tm.AsignadoA] || '').toLowerCase().trim();
+      const estatus = String(r[tm.Estatus] || '').toLowerCase().trim();
+      return asig === a.email.toLowerCase() &&
+             !['cerrado','resuelto','cancelado'].includes(estatus);
     }).length;
   });
-  
-  // Ordenar agentes del área: Disponibles > Misma Ubicación > Menos Carga
-  agentesArea.sort(function(a, b) {
-    if (a.disponible !== b.disponible) return (b.disponible ? 1 : 0) - (a.disponible ? 1 : 0);
-    if (a.tieneUbicacion !== b.tieneUbicacion) return (b.tieneUbicacion ? 1 : 0) - (a.tieneUbicacion ? 1 : 0);
+
+  // Ordenar agentes del área
+  agentesArea.sort((a, b) => {
+    // Para mantenimiento: primero los de la misma ciudad física
+    if (esPresencial && ubicacionLower) {
+      const aEnCiudad = a.ubicacionFisica === ubicacionLower;
+      const bEnCiudad = b.ubicacionFisica === ubicacionLower;
+      if (aEnCiudad !== bEnCiudad) return aEnCiudad ? -1 : 1;
+    }
+    if (a.disponible !== b.disponible) return a.disponible ? -1 : 1;
+    if (a.tieneUbicacion !== b.tieneUbicacion) return a.tieneUbicacion ? -1 : 1;
     return a.ticketsActivos - b.ticketsActivos;
   });
-  
-  // Admins al final, ordenados por carga
-  admins.sort(function(a, b) { return a.ticketsActivos - b.ticketsActivos; });
-  
-  // Resultado: Agentes del área PRIMERO, luego admins como fallback
-  var resultado = agentesArea.concat(admins);
-  
-  Logger.log('[getAgentesParaReasignar] Área: ' + areaTicket + 
-             ' | Agentes del área: ' + agentesArea.length + 
-             ' | Admins (fallback): ' + admins.length +
-             ' | Total: ' + resultado.length);
-  
-  // Log detallado para debug
-  resultado.forEach(function(a) {
-    Logger.log('  → ' + a.nombre + ' | Rol: ' + a.rol + ' | Admin: ' + a.esAdmin + ' | Disp: ' + a.disponible);
-  });
-  
-  return resultado;
-  
-  // ── Función auxiliar para construir objeto de agente ──
-  function buildAgenteInfo(r, um, rolRaw, esAdminFlag) {
-    var disponible = true;
-    var motivoAusencia = '';
-    
+
+  admins.sort((a, b) => a.ticketsActivos - b.ticketsActivos);
+
+  Logger.log(`[getAgentesParaReasignar] Área: ${areaTicket} | Presencial: ${esPresencial} | Agentes: ${agentesArea.length} | Admins: ${admins.length}`);
+  return agentesArea.concat(admins);
+
+  // ── Helper interno ─────────────────────────────────────────────────────
+  function buildInfo(r, um, rolRaw, esAdminFlag) {
+    let disponible = true, motivoAusencia = '';
     if (um.Disponible != null) {
-      var disp = r[um.Disponible];
-      disponible = disp !== false && 
-                   String(disp).toLowerCase() !== 'false' &&
-                   String(disp).toLowerCase() !== 'no';
-      if (!disponible && um.MotivoAusencia != null) {
-        motivoAusencia = r[um.MotivoAusencia] || 'Ausente';
-      }
+      const d = r[um.Disponible];
+      disponible = d !== false && String(d).toLowerCase() !== 'false' && String(d).toLowerCase() !== 'no';
+      if (!disponible && um.MotivoAusencia != null) motivoAusencia = r[um.MotivoAusencia] || 'Ausente';
     }
-    
-    var ubicaciones = String(r[um['Ubicación']] || '').split(',').map(function(u) { return u.trim(); }).filter(Boolean);
-    var tieneUbicacion = ubicacionLower && ubicaciones.map(function(u) { return u.toLowerCase(); }).indexOf(ubicacionLower) >= 0;
-    
+
+    const ubicaciones = String(r[um['Ubicación']] || '').split(',').map(u => u.trim()).filter(Boolean);
+    const tieneUbicacion = ubicacionLower
+      ? ubicaciones.map(u => u.toLowerCase()).includes(ubicacionLower)
+      : false;
+
+    // 🆕 Ciudad física del agente
+    const ubicacionFisica = um['UbicacionFisica'] != null
+      ? String(r[um['UbicacionFisica']] || '').toLowerCase().trim()
+      : (ubicaciones[0] || '').toLowerCase();
+
+    // 🆕 Para mantenimiento: advertir si está en ciudad diferente
+    const ciudadCorrecta = !ubicacionLower || ubicacionFisica === ubicacionLower;
+
     return {
-      email: r[um.Email],
-      nombre: r[um.Nombre] || r[um.Email],
-      rol: rolRaw,
-      ubicaciones: ubicaciones,
-      tieneUbicacion: tieneUbicacion,
-      disponible: disponible,
-      motivoAusencia: motivoAusencia,
-      esAdmin: esAdminFlag
+      email:           String(r[um.Email] || '').trim(),
+      nombre:          r[um.Nombre] || r[um.Email],
+      rol:             rolRaw,
+      ubicaciones,
+      tieneUbicacion,
+      ubicacionFisica,
+      ciudadCorrecta,  // 🆕 útil para el modal: muestra advertencia si es otra ciudad
+      disponible,
+      motivoAusencia,
+      esAdmin:         esAdminFlag
     };
   }
 }
@@ -8358,31 +8645,27 @@ function enviarEmailNotificacion(destinatario, asunto, cuerpoHtml, opciones = {}
 }
 
 
-/**
- * Notificar al agente sobre nuevo ticket asignado (INCLUYE VISITA)
- */
 function notificarAgenteNuevoTicket(emailAgente, ticket) {
-  const { folio, titulo, area, ubicacion, prioridad, reportaNombre, descripcion, visitaFecha, visitaHora } = ticket;
-  
-  const prioClass = (prioridad || '').toLowerCase().includes('alta') || 
-                    (prioridad || '').toLowerCase().includes('crítica') || 
-                    (prioridad || '').toLowerCase().includes('urgente') ? 'priority-alta' : 
+  const { folio, titulo, area, ubicacion, prioridad, reportaNombre, descripcion, visitaFecha, visitaHora, id } = ticket;
+
+  const prioClass = (prioridad || '').toLowerCase().includes('alta') ||
+                    (prioridad || '').toLowerCase().includes('crítica') ||
+                    (prioridad || '').toLowerCase().includes('urgente') ? 'priority-alta' :
                     (prioridad || '').toLowerCase().includes('media') ? 'priority-media' : 'priority-baja';
-  
-  // Bloque HTML condicional para la visita
+
   const visitaHtml = visitaFecha ? `
-    <div style="margin: 15px 0; padding: 12px; background-color: #e0f2fe; border-left: 4px solid #0284c7; border-radius: 4px;">
-      <h4 style="margin: 0 0 5px 0; color: #0284c7; font-size: 14px;">📅 Visita Programada Solicitada</h4>
-      <p style="margin: 0; color: #0c4a6e;">
-        <strong>Fecha:</strong> ${visitaFecha} <br>
+    <div style="margin:15px 0;padding:12px;background:#e0f2fe;border-left:4px solid #0284c7;border-radius:4px;">
+      <h4 style="margin:0 0 5px;color:#0284c7;font-size:14px;">📅 Visita Programada Solicitada</h4>
+      <p style="margin:0;color:#0c4a6e;">
+        <strong>Fecha:</strong> ${visitaFecha}<br>
         <strong>Hora:</strong> ${visitaHora}
       </p>
-    </div>
-  ` : '';
+    </div>` : '';
 
-  const cuerpo = `<h2>📋 Nuevo Ticket Asignado</h2>
-    <p>Se te ha asignado un nuevo ticket que requiere tu atención.</p> 
-    
+  const cuerpo = `
+    <h2>📋 Nuevo Ticket Asignado</h2>
+    <p>Se te ha asignado un nuevo ticket que requiere tu atención.</p>
+
     <div class="ticket-box">
       <h3>Ticket #${folio}</h3>
       <p><strong>${titulo || 'Sin título'}</strong></p>
@@ -8390,103 +8673,82 @@ function notificarAgenteNuevoTicket(emailAgente, ticket) {
 
     ${visitaHtml}
 
-    <div class="info-row">
-      <span class="info-label">Área:</span>
-      <span class="info-value">${area || 'N/A'}</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">Ubicación:</span>
-      <span class="info-value">${ubicacion || 'No especificada'}</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">Prioridad:</span>
-      <span class="info-value ${prioClass}">${prioridad || 'Media'}</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">Reportado por:</span>
-      <span class="info-value">${reportaNombre || 'Usuario'}</span>
-    </div>
-    ${descripcion ? `<div style="margin-top:20px;padding:15px;background:#f8fafc;border-radius:8px;"><strong>Descripción:</strong><br><span style="color:#475569;">${String(descripcion).substring(0, 500)}${String(descripcion).length > 500 ? '...' : ''}</span></div>` : ''}
-    <p style="margin-top:25px;">
-      <a href="${getScriptUrl()}" class="btn">🔗 Abrir Sistema</a>
-    </p>
+    <div class="info-row"><span class="info-label">Área:</span><span class="info-value">${area || 'N/A'}</span></div>
+    <div class="info-row"><span class="info-label">Ubicación:</span><span class="info-value">${ubicacion || 'No especificada'}</span></div>
+    <div class="info-row"><span class="info-label">Prioridad:</span><span class="info-value ${prioClass}">${prioridad || 'Media'}</span></div>
+    <div class="info-row"><span class="info-label">Reportado por:</span><span class="info-value">${reportaNombre || 'Usuario'}</span></div>
+
+    ${descripcion ? `<div style="margin-top:20px;padding:15px;background:#f8fafc;border-radius:8px;">
+      <strong>Descripción:</strong><br>
+      <span style="color:#475569;">${String(descripcion).substring(0, 500)}${String(descripcion).length > 500 ? '...' : ''}</span>
+    </div>` : ''}
+
+    ${getBtnTicketHtml(id, folio)}
   `;
-  
+
   return enviarEmailNotificacion(emailAgente, `Nuevo Ticket #${folio} Asignado`, cuerpo);
 }
 
 
-/**
- * Notificar al usuario sobre cambio de estado de su ticket
- */
 function notificarUsuarioCambioEstado(emailUsuario, ticket, nuevoEstado, comentario) {
-  const { folio, titulo } = ticket;
-  
-  let mensaje = '';
-  let icono = '📋';
-  let alertClass = '';
-  
+  const { folio, titulo, id } = ticket;
+
+  let mensaje = '', icono = '📋', alertClass = '';
+
   switch ((nuevoEstado || '').toLowerCase()) {
     case 'en proceso':
-      icono = '🔄';
+      icono = '🔄'; alertClass = 'alert-success';
       mensaje = 'Tu ticket está siendo atendido por nuestro equipo de soporte.';
-      alertClass = 'alert-success';
       break;
     case 'resuelto':
-      icono = '✅';
+      icono = '✅'; alertClass = 'alert-success';
       mensaje = 'Tu ticket ha sido marcado como resuelto. Por favor verifica que el problema haya sido solucionado correctamente.';
-      alertClass = 'alert-success';
       break;
     case 'cerrado':
-      icono = '🔒';
+      icono = '🔒'; alertClass = 'alert-success';
       mensaje = 'Tu ticket ha sido cerrado. Gracias por usar el sistema de soporte.';
-      alertClass = 'alert-success';
       break;
     case 'en espera':
-      icono = '⏳';
+      icono = '⏳'; alertClass = 'alert-warning';
       mensaje = 'Tu ticket está en espera. Puede requerir información adicional o recursos externos.';
-      alertClass = 'alert-warning';
       break;
     case 'escalado':
-      icono = '⚠️';
+      icono = '⚠️'; alertClass = 'alert-warning';
       mensaje = 'Tu ticket ha sido escalado a un nivel superior para su atención prioritaria.';
-      alertClass = 'alert-warning';
       break;
     case 'en cotización':
-      icono = '💰';
+      icono = '💰'; alertClass = 'alert-warning';
       mensaje = 'Tu ticket está en proceso de cotización. Te notificaremos cuando se requiera aprobación.';
-      alertClass = 'alert-warning';
       break;
     case 'reabierto':
-      icono = '🔄';
+      icono = '🔄'; alertClass = 'alert-warning';
       mensaje = 'Tu ticket ha sido reabierto y será atendido nuevamente.';
-      alertClass = 'alert-warning';
       break;
     default:
       mensaje = `El estado de tu ticket ha cambiado a: <strong>${nuevoEstado}</strong>`;
-      alertClass = '';
   }
-  
+
   const cuerpo = `
     <h2>${icono} Actualización de Ticket</h2>
-    
+
     <div class="ticket-box">
       <h3>Ticket #${folio}</h3>
       <p><strong>${titulo || 'Sin título'}</strong></p>
       <p>Nuevo estado: <strong style="color:#3b82f6;">${nuevoEstado}</strong></p>
     </div>
-    
+
     <div class="alert-box ${alertClass}" style="margin:20px 0;">
       <p style="margin:0;">${mensaje}</p>
     </div>
-    
-    ${comentario ? `<div style="margin-top:20px;padding:15px;background:#f0f9ff;border-radius:8px;border-left:4px solid #3b82f6;"><strong>💬 Comentario del agente:</strong><br><span style="color:#475569;">${comentario}</span></div>` : ''}
-    
-    <p style="margin-top:25px;">
-      <a href="${getScriptUrl()}" class="btn">🔗 Ver Ticket</a>
-    </p>
+
+    ${comentario ? `<div style="margin-top:20px;padding:15px;background:#f0f9ff;border-radius:8px;border-left:4px solid #3b82f6;">
+      <strong>💬 Comentario del agente:</strong><br>
+      <span style="color:#475569;">${comentario}</span>
+    </div>` : ''}
+
+    ${getBtnTicketHtml(id, folio, '🔗 Ver Ticket')}
   `;
-  
+
   return enviarEmailNotificacion(emailUsuario, `Ticket #${folio} - ${nuevoEstado}`, cuerpo);
 }
 
@@ -8527,165 +8789,104 @@ function notificarUsuarioAprobacion(emailUsuario, ticket, aprobado, comentario) 
 }
 
 
-/**
- * Notificar reasignación de ticket a nuevo agente
- */
 function notificarReasignacion(emailNuevoAgente, ticket, motivo) {
-  const { folio, titulo, area, ubicacion, prioridad, reportaNombre } = ticket;
-  
-  const prioClass = (prioridad || '').toLowerCase().includes('alta') ? 'priority-alta' : 
+  const { folio, titulo, area, ubicacion, prioridad, reportaNombre, id } = ticket;
+
+  const prioClass = (prioridad || '').toLowerCase().includes('alta') ? 'priority-alta' :
                     (prioridad || '').toLowerCase().includes('media') ? 'priority-media' : 'priority-baja';
-  
+
   const cuerpo = `
     <h2>🔄 Ticket Reasignado</h2>
-    <p>Se te ha reasignado un ticket que requiere tu atención.</p>
-    
-    <div class="alert-box alert-warning">
-      <strong>Motivo de reasignación:</strong> ${motivo || 'Reasignación manual'}
-    </div>
-    
+    <p>Se te ha reasignado el siguiente ticket.</p>
     <div class="ticket-box">
       <h3>Ticket #${folio}</h3>
       <p><strong>${titulo || 'Sin título'}</strong></p>
     </div>
-    
-    <div class="info-row">
-      <span class="info-label">Área:</span>
-      <span class="info-value">${area || 'N/A'}</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">Ubicación:</span>
-      <span class="info-value">${ubicacion || 'No especificada'}</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">Prioridad:</span>
-      <span class="info-value ${prioClass}">${prioridad || 'Media'}</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">Reportado por:</span>
-      <span class="info-value">${reportaNombre || 'Usuario'}</span>
-    </div>
-    
-    <p style="margin-top:25px;">
-      <a href="${getScriptUrl()}" class="btn btn-warning">⚡ Atender Ticket</a>
-    </p>
+    <div class="info-row"><span class="info-label">Área:</span><span class="info-value">${area || 'N/A'}</span></div>
+    <div class="info-row"><span class="info-label">Ubicación:</span><span class="info-value">${ubicacion || 'N/A'}</span></div>
+    <div class="info-row"><span class="info-label">Prioridad:</span><span class="info-value ${prioClass}">${prioridad || 'Media'}</span></div>
+    <div class="info-row"><span class="info-label">Reportado por:</span><span class="info-value">${reportaNombre || 'Usuario'}</span></div>
+    ${motivo ? `<div class="alert-box alert-warning"><p style="margin:0;"><strong>Motivo:</strong> ${motivo}</p></div>` : ''}
+    ${getBtnTicketHtml(id, folio, '🔗 Ver Ticket')}
   `;
-  
-  return enviarEmailNotificacion(emailNuevoAgente, `Ticket #${folio} Reasignado`, cuerpo);
+
+  return enviarEmailNotificacion(emailNuevoAgente, `Ticket #${folio} Reasignado a ti`, cuerpo);
 }
 
 
-/**
- * Notificar alerta de tickets sin atender por ausencia de agente
- */
-function notificarAlertaTicketsSinAtender(emailAgente, tickets, agenteAusente, motivo) {
-  const listaTickets = tickets.map(t => `
-    <div style="padding:12px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
-      <div>
-        <strong style="color:#1e3a5f;">#${t.folio}</strong> - ${t.titulo || 'Sin título'}
-        <br><small style="color:#64748b;">Ubicación: ${t.ubicacion || 'N/A'}</small>
-      </div>
-      <span class="priority-${(t.prioridad || 'media').toLowerCase()}" style="font-size:12px;">${t.prioridad || 'Media'}</span>
-    </div>
-  `).join('');
-  
+function notificarAlertaTicketsSinAtender(emailAgente, tickets) {
+  const listaHtml = tickets.slice(0, 10).map(t =>
+    `<li><strong>#${t.folio || t.Folio}</strong> — ${t.titulo || t['Título'] || 'Sin título'} 
+     <span style="color:#ef4444;">(${t.horasVencido ? `Vencido hace ${t.horasVencido}h` : 'Vencido'})</span></li>`
+  ).join('');
+
   const cuerpo = `
-    <h2>⚠️ Alerta: Tickets Requieren Atención</h2>
-    
+    <h2>⚠️ Tickets Requieren Atención</h2>
     <div class="alert-box alert-warning">
-      <p style="margin:0;"><strong>${agenteAusente}</strong> se ha marcado como ausente.</p>
-      <p style="margin:5px 0 0;">Motivo: ${motivo || 'No especificado'}</p>
+      <p style="margin:0;"><strong>${tickets.length} ticket(s) requieren tu atención inmediata.</strong></p>
     </div>
-    
-    <p>Los siguientes tickets necesitan ser atendidos:</p>
-    
-    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin:20px 0;">
-      ${listaTickets}
-    </div>
-    
-    <p style="color:#64748b;">Por favor revisa estos tickets y coordina con tu equipo para su atención oportuna.</p>
-    
-    <p style="margin-top:25px;">
-      <a href="${getScriptUrl()}" class="btn btn-warning">📋 Revisar Tickets</a>
+    <ul style="margin:20px 0;padding-left:20px;line-height:2;">
+      ${listaHtml}
+    </ul>
+    <p style="margin-top:25px;text-align:center;">
+      <a href="${getScriptUrl()}" target="bexalta_helpdesk"
+         style="display:inline-block;background:#f59e0b;color:white;padding:12px 30px;
+                text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;">
+        📋 Revisar Tickets
+      </a>
     </p>
   `;
-  
+
   return enviarEmailNotificacion(emailAgente, `⚠️ Alerta: ${tickets.length} Ticket(s) Requieren Atención`, cuerpo);
 }
 
 
-/**
- * Notificar nuevo comentario en ticket
- */
 function notificarNuevoComentario(emailDestino, ticket, autorComentario, comentario, esInterno) {
-  if (esInterno) return false; // No notificar comentarios internos a usuarios
-  
-  const { folio, titulo } = ticket;
-  
+  if (esInterno) return false;
+
+  const { folio, titulo, id } = ticket;
+
   const cuerpo = `
     <h2>💬 Nuevo Comentario</h2>
     <p>Se ha agregado un nuevo comentario a tu ticket.</p>
-    
     <div class="ticket-box">
       <h3>Ticket #${folio}</h3>
       <p><strong>${titulo || 'Sin título'}</strong></p>
     </div>
-    
     <div style="margin:20px 0;padding:20px;background:#f0f9ff;border-radius:8px;border-left:4px solid #3b82f6;">
       <p style="margin:0 0 10px;color:#64748b;font-size:13px;"><strong>${autorComentario}</strong> comentó:</p>
       <p style="margin:0;color:#1e293b;">${comentario}</p>
     </div>
-    
-    <p style="margin-top:25px;">
-      <a href="${getScriptUrl()}" class="btn">💬 Ver Conversación</a>
-    </p>
+    ${getBtnTicketHtml(id, folio, '💬 Ver Conversación')}
   `;
-  
+
   return enviarEmailNotificacion(emailDestino, `Nuevo comentario en Ticket #${folio}`, cuerpo);
 }
 
 
-/**
- * Notificar ticket próximo a vencer (SLA)
- */
 function notificarTicketPorVencer(emailAgente, ticket, horasRestantes) {
-  const { folio, titulo, area, ubicacion, prioridad, vencimiento } = ticket;
-  
+  const { folio, titulo, area, ubicacion, prioridad, vencimiento, id } = ticket;
+
   const alertClass = horasRestantes <= 2 ? 'alert-danger' : 'alert-warning';
-  const urgencia = horasRestantes <= 2 ? '🚨 URGENTE' : '⏰ Próximo a vencer';
-  
+  const urgencia   = horasRestantes <= 2 ? '🚨 URGENTE'  : '⏰ Próximo a vencer';
+
   const cuerpo = `
     <h2>${urgencia}</h2>
-    
     <div class="alert-box ${alertClass}">
       <p style="margin:0;"><strong>El ticket vence en ${horasRestantes} hora(s)</strong></p>
-      ${vencimiento ? `<p style="margin:5px 0 0;">Fecha límite: ${new Date(vencimiento).toLocaleString('es-MX')}</p>` : ''}
+      ${vencimiento ? `<p style="margin:5px 0 0;font-size:0.9em;">Vencimiento: ${new Date(vencimiento).toLocaleString('es-MX')}</p>` : ''}
     </div>
-    
     <div class="ticket-box">
       <h3>Ticket #${folio}</h3>
       <p><strong>${titulo || 'Sin título'}</strong></p>
     </div>
-    
-    <div class="info-row">
-      <span class="info-label">Área:</span>
-      <span class="info-value">${area || 'N/A'}</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">Ubicación:</span>
-      <span class="info-value">${ubicacion || 'No especificada'}</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">Prioridad:</span>
-      <span class="info-value priority-alta">${prioridad || 'Alta'}</span>
-    </div>
-    
-    <p style="margin-top:25px;">
-      <a href="${getScriptUrl()}" class="btn btn-danger">⚡ Atender Ahora</a>
-    </p>
+    <div class="info-row"><span class="info-label">Área:</span><span class="info-value">${area || 'N/A'}</span></div>
+    <div class="info-row"><span class="info-label">Ubicación:</span><span class="info-value">${ubicacion || 'N/A'}</span></div>
+    <div class="info-row"><span class="info-label">Prioridad:</span><span class="info-value">${prioridad || 'Media'}</span></div>
+    ${getBtnTicketHtml(id, folio, '⚡ Atender Ticket')}
   `;
-  
-  return enviarEmailNotificacion(emailAgente, `${urgencia}: Ticket #${folio}`, cuerpo);
+
+  return enviarEmailNotificacion(emailAgente, `⏰ Ticket #${folio} - Vence en ${horasRestantes}h`, cuerpo);
 }
 
 
@@ -8869,29 +9070,25 @@ function enviarEmailReapertura(emailAgente, datos) {
   return enviarEmailNotificacion(emailAgente, '🔄 Ticket Reabierto: #' + folio + ' - ' + titulo, cuerpo);
 }
 
-function notificarTicketVencido(emailAgente, datos) {
-  var folio = datos.folio || '';
-  var titulo = datos.titulo || 'Sin título';
-  var area = datos.area || '';
-  var ubicacion = datos.ubicacion || '';
-  var prioridad = datos.prioridad || '';
-  var vencimiento = datos.vencimiento ? new Date(datos.vencimiento).toLocaleString('es-MX') : 'N/A';
+function notificarTicketVencido(emailAgente, ticket) {
+  const { folio, titulo, area, ubicacion, prioridad, id } = ticket;
 
-  var cuerpo = '<h2>🚨 SLA VENCIDO</h2>' +
-    '<div class="alert-box alert-danger">' +
-      '<p style="margin:0;"><strong>Este ticket ha superado su fecha límite de atención</strong></p>' +
-      '<p style="margin:5px 0 0;">Venció: ' + vencimiento + '</p>' +
-    '</div>' +
-    '<div class="ticket-box">' +
-      '<h3>Ticket #' + folio + '</h3>' +
-      '<p><strong>' + titulo + '</strong></p>' +
-    '</div>' +
-    '<div class="info-row"><span class="info-label">Área:</span><span class="info-value">' + area + '</span></div>' +
-    '<div class="info-row"><span class="info-label">Ubicación:</span><span class="info-value">' + ubicacion + '</span></div>' +
-    '<div class="info-row"><span class="info-label">Prioridad:</span><span class="info-value priority-alta">' + prioridad + '</span></div>' +
-    '<p style="margin-top:25px;"><a href="' + getScriptUrl() + '" class="btn btn-danger">⚡ Atender URGENTE</a></p>';
+  const cuerpo = `
+    <h2>🚨 Ticket VENCIDO</h2>
+    <div class="alert-box alert-danger">
+      <p style="margin:0;"><strong>Este ticket ha superado su tiempo de SLA.</strong></p>
+    </div>
+    <div class="ticket-box">
+      <h3>Ticket #${folio}</h3>
+      <p><strong>${titulo || 'Sin título'}</strong></p>
+    </div>
+    <div class="info-row"><span class="info-label">Área:</span><span class="info-value">${area || 'N/A'}</span></div>
+    <div class="info-row"><span class="info-label">Ubicación:</span><span class="info-value">${ubicacion || 'N/A'}</span></div>
+    <div class="info-row"><span class="info-label">Prioridad:</span><span class="info-value">${prioridad || 'Media'}</span></div>
+    ${getBtnTicketHtml(id, folio, '⚡ Atender Ahora')}
+  `;
 
-  return enviarEmailNotificacion(emailAgente, '🚨 SLA VENCIDO: Ticket #' + folio + ' - ' + titulo, cuerpo);
+  return enviarEmailNotificacion(emailAgente, `🚨 Ticket #${folio} VENCIDO - Atención inmediata`, cuerpo);
 }
 
 // ============================================================================
@@ -11219,6 +11416,926 @@ function eliminarFestivo(rowIndex) {
     sh.deleteRow(rowIndex);
     return { ok: true };
   } catch(e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+// ============================================================================
+// RECORDATORIOS DIARIOS DE TICKETS VENCIDOS
+// ============================================================================
+
+/**
+ * Ejecutar diariamente via trigger de tiempo.
+ * Configurar: Editar > Triggers > recordatoriosDiariosSLA → Cada día → 8:00am
+ */
+function recordatoriosDiariosSLA() {
+  const LOG = '[RecordatoriosSLA]';
+  Logger.log(LOG + ' Iniciando...');
+
+  const { headers, rows } = _readTableByHeader_(DB.TICKETS);
+  const m = _headerMap_(headers);
+  const sh = getSheet(DB.TICKETS);
+  const ahora = new Date();
+
+  let recordatoriosEnviados = 0;
+  let escaladesGerente = 0;
+
+  rows.forEach(function(r, idx) {
+    try {
+      const estatus = String(r[m.Estatus] || '').toLowerCase();
+      
+      // Solo tickets activos (no cerrados ni resueltos)
+      if (['cerrado', 'resuelto', 'cancelado'].includes(estatus)) return;
+
+      const vencimientoRaw = r[m.Vencimiento];
+      if (!vencimientoRaw) return;
+
+      const vencimiento = new Date(String(vencimientoRaw).replace(' ', 'T'));
+      if (isNaN(vencimiento.getTime())) return;
+
+      // Solo tickets YA vencidos
+      if (vencimiento >= ahora) return;
+
+      const ticketId   = String(r[m.ID] || '');
+      const folio      = String(r[m.Folio] || '');
+      const titulo     = String(r[m['Título']] || r[m.Titulo] || '');
+      const area       = String(r[m['Área']] || r[m.Area] || '');
+      const prioridad  = String(r[m.Prioridad] || '');
+      const ubicacion  = String(r[m['Ubicación']] || r[m.Ubicacion] || '');
+      const asignadoA  = String(r[m.AsignadoA] || '');
+
+      // Calcular días vencido
+      const msVencido  = ahora.getTime() - vencimiento.getTime();
+      const diasVencido = Math.floor(msVencido / (1000 * 60 * 60 * 24));
+      const horasVencido = Math.floor(msVencido / (1000 * 60 * 60));
+
+      const datos = {
+        ticketId, folio, titulo, area, prioridad, ubicacion,
+        vencimiento: vencimientoRaw,
+        diasVencido, horasVencido,
+        asignadoA
+      };
+
+      // ── NOTIFICAR AL AGENTE ──────────────────────────────────────────────
+      if (asignadoA && asignadoA.includes('@')) {
+        _enviarRecordatorioVencidoAgente_(asignadoA, datos);
+        recordatoriosEnviados++;
+
+        // Notificación en sistema
+        crearNotificacion(
+          asignadoA,
+          'vencimiento',
+          `🔴 Recordatorio: Ticket #${folio} lleva ${diasVencido} día(s) vencido`,
+          `"${titulo}" sigue sin resolver. Requiere atención urgente.`,
+          ticketId
+        );
+      }
+
+      // ── ESCALAR AL GERENTE si lleva 7+ días vencido ──────────────────────
+      if (diasVencido >= 7) {
+        try {
+          const gerente = getGerenteDelArea(area);
+          if (gerente && gerente.email) {
+            _enviarEscaladoGerente_(gerente, datos);
+            escaladesGerente++;
+
+            // Notificación en sistema al gerente
+            crearNotificacion(
+              gerente.email,
+              'vencimiento',
+              `🚨 ESCALADO: Ticket #${folio} lleva ${diasVencido} días vencido`,
+              `"${titulo}" asignado a ${asignadoA || 'nadie'} lleva ${diasVencido} días sin resolverse.`,
+              ticketId
+            );
+          }
+        } catch (e) {
+          Logger.log(LOG + ' Error escalando gerente: ' + e.message);
+        }
+      }
+
+    } catch (e) {
+      Logger.log(LOG + ' Error procesando ticket: ' + e.message);
+    }
+  });
+
+  Logger.log(LOG + ` Completado. Recordatorios: ${recordatoriosEnviados}, Escalados: ${escaladesGerente}`);
+}
+
+
+// ── Helper: Correo + Telegram al agente ─────────────────────────────────────
+
+function _enviarRecordatorioVencidoAgente_(emailAgente, datos) {
+  const { folio, titulo, area, ubicacion, prioridad, diasVencido, horasVencido, vencimiento } = datos;
+
+  const diasTexto = diasVencido >= 1
+    ? `${diasVencido} día(s) vencido`
+    : `${horasVencido} hora(s) vencido`;
+
+  const emoji = diasVencido >= 7 ? '🔴' : diasVencido >= 3 ? '🟠' : '🟡';
+
+  // ── Correo ────────────────────────────────────────────────────────────────
+  const cuerpo = `
+    <h2>${emoji} Recordatorio: SLA Vencido</h2>
+    <div class="alert-box alert-danger">
+      <p style="margin:0;"><strong>Este ticket lleva ${diasTexto} sin resolverse</strong></p>
+      <p style="margin:5px 0 0;">Venció: ${new Date(vencimiento).toLocaleString('es-MX')}</p>
+    </div>
+    <div class="ticket-box">
+      <h3>Ticket #${folio}</h3>
+      <p><strong>${titulo}</strong></p>
+    </div>
+    <div class="info-row"><span class="info-label">Área:</span><span class="info-value">${area}</span></div>
+    <div class="info-row"><span class="info-label">Ubicación:</span><span class="info-value">${ubicacion}</span></div>
+    <div class="info-row"><span class="info-label">Prioridad:</span><span class="info-value priority-alta">${prioridad}</span></div>
+    <p style="margin-top:25px;">
+      <a href="${getScriptUrl(datos.ticketId)}" class="btn btn-danger">⚡ Resolver Ahora</a>
+    </p>
+  `;
+
+  try {
+    enviarEmailNotificacion(
+      emailAgente,
+      `${emoji} Recordatorio SLA: Ticket #${folio} lleva ${diasTexto}`,
+      cuerpo
+    );
+  } catch (e) {
+    Logger.log('⚠️ Error correo recordatorio: ' + e.message);
+  }
+
+  // ── Telegram ──────────────────────────────────────────────────────────────
+  try {
+    const msgTg = `${emoji} <b>Recordatorio SLA Vencido</b>\n\n` +
+      `📋 <b>Ticket #${folio}</b>\n` +
+      `📝 ${titulo}\n` +
+      `📁 Área: ${area}\n` +
+      `📍 Ubicación: ${ubicacion}\n` +
+      `⚡ Prioridad: ${prioridad}\n` +
+      `⏰ <b>Lleva ${diasTexto} sin resolverse</b>\n\n` +
+      `🔗 <a href="${getScriptUrl(datos.ticketId)}">Atender ahora</a>`;
+
+    // Intentar Telegram individual primero, luego grupo
+    const enviado = enviarTelegramAgente(emailAgente, msgTg);
+    if (!enviado) {
+      const chatIdGrupo = getTelegramChatIdGrupo(emailAgente);
+      if (chatIdGrupo) telegramSendToGrupo(chatIdGrupo, msgTg);
+    }
+  } catch (e) {
+    Logger.log('⚠️ Error Telegram recordatorio: ' + e.message);
+  }
+}
+
+
+// ── Helper: Correo + Telegram al gerente ────────────────────────────────────
+
+function _enviarEscaladoGerente_(gerente, datos) {
+  const { folio, titulo, area, ubicacion, prioridad, diasVencido, asignadoA, vencimiento } = datos;
+
+  // ── Correo ────────────────────────────────────────────────────────────────
+  const cuerpo = `
+    <h2>🚨 Escalamiento: Ticket sin resolver por ${diasVencido} días</h2>
+    <div class="alert-box alert-danger">
+      <p style="margin:0;"><strong>Este ticket lleva ${diasVencido} días vencido sin resolverse</strong></p>
+      <p style="margin:5px 0 0;">Requiere tu intervención inmediata como gerente del área.</p>
+    </div>
+    <div class="ticket-box">
+      <h3>Ticket #${folio}</h3>
+      <p><strong>${titulo}</strong></p>
+    </div>
+    <div class="info-row"><span class="info-label">Área:</span><span class="info-value">${area}</span></div>
+    <div class="info-row"><span class="info-label">Ubicación:</span><span class="info-value">${ubicacion}</span></div>
+    <div class="info-row"><span class="info-label">Prioridad:</span><span class="info-value priority-alta">${prioridad}</span></div>
+    <div class="info-row"><span class="info-label">Asignado a:</span><span class="info-value">${asignadoA || 'Sin asignar'}</span></div>
+    <div class="info-row"><span class="info-label">Vencimiento original:</span><span class="info-value">${new Date(vencimiento).toLocaleString('es-MX')}</span></div>
+    <p style="margin-top:25px;">
+      <a href="${getScriptUrl(datos.ticketId)}" class="btn btn-danger">🚨 Ver Ticket Ahora</a>
+    </p>
+  `;
+
+  try {
+    enviarEmailNotificacion(
+      gerente.email,
+      `🚨 ESCALADO: Ticket #${folio} lleva ${diasVencido} días sin resolverse`,
+      cuerpo
+    );
+  } catch (e) {
+    Logger.log('⚠️ Error correo gerente: ' + e.message);
+  }
+
+  // ── Telegram ──────────────────────────────────────────────────────────────
+  try {
+    const msgTg = `🚨 <b>ESCALAMIENTO AUTOMÁTICO</b>\n\n` +
+      `📋 <b>Ticket #${folio}</b> lleva <b>${diasVencido} días vencido</b>\n` +
+      `📝 ${titulo}\n` +
+      `📁 Área: ${area}\n` +
+      `👤 Asignado a: ${asignadoA || 'Sin asignar'}\n` +
+      `⚡ Prioridad: ${prioridad}\n\n` +
+      `⚠️ Requiere tu intervención como gerente.\n` +
+      `🔗 <a href="${getScriptUrl(datos.ticketId)}">Ver ticket</a>`;
+
+    notificarGerenteTelegram(area, 'ESCALAMIENTO AUTOMÁTICO', {
+      folio, titulo, area, prioridad,
+      motivo: `Lleva ${diasVencido} días vencido sin resolverse`,
+      solicitante: 'Sistema automático'
+    });
+  } catch (e) {
+    Logger.log('⚠️ Error Telegram gerente: ' + e.message);
+  }
+}
+
+
+// ============================================================================
+// REPORTE SEMANAL
+// ============================================================================
+
+/**
+ * Ejecutar semanalmente via trigger.
+ * Configurar: Editar > Triggers > reporteSemanalHelpDesk → Cada semana → Lunes 8:00am
+ */
+function reporteSemanalHelpDesk() {
+  const LOG = '[ReporteSemanal]';
+  Logger.log(LOG + ' Generando reporte semanal...');
+
+  const { headers, rows } = _readTableByHeader_(DB.TICKETS);
+  const m = _headerMap_(headers);
+  const ahora = new Date();
+
+  // Rango: últimos 7 días
+  const hace7dias = new Date(ahora.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  // Métricas
+  let totalCreados = 0, totalResueltos = 0, totalCerrados = 0;
+  let totalVencidos = 0, totalActivos = 0;
+  const porArea = {};
+  const porAgente = {};
+  const ticketsVencidosPendientes = [];
+
+  rows.forEach(function(r) {
+    const estatus     = String(r[m.Estatus] || '').toLowerCase();
+    const fechaRaw    = r[m.Fecha];
+    const area        = String(r[m['Área']] || r[m.Area] || 'Sin área');
+    const asignadoA   = String(r[m.AsignadoA] || 'Sin asignar');
+    const folio       = String(r[m.Folio] || '');
+    const titulo      = String(r[m['Título']] || r[m.Titulo] || '');
+    const prioridad   = String(r[m.Prioridad] || '');
+    const vencRaw     = r[m.Vencimiento];
+    const ticketId    = String(r[m.ID] || '');
+
+    const esCerrado   = ['cerrado', 'resuelto'].includes(estatus);
+    const venc        = vencRaw ? new Date(String(vencRaw).replace(' ', 'T')) : null;
+    const estaVencido = venc && !isNaN(venc.getTime()) && venc < ahora && !esCerrado;
+
+    // Creados esta semana
+    if (fechaRaw) {
+      const fechaCreacion = new Date(String(fechaRaw).replace(' ', 'T'));
+      if (!isNaN(fechaCreacion.getTime()) && fechaCreacion >= hace7dias) {
+        totalCreados++;
+      }
+    }
+
+    // Resueltos/Cerrados esta semana
+    if (esCerrado) {
+      totalCerrados++;
+      if (estatus === 'resuelto') totalResueltos++;
+    }
+
+    // Activos y vencidos
+    if (!esCerrado) {
+      totalActivos++;
+      if (estaVencido) {
+        totalVencidos++;
+        const diasVencido = Math.floor((ahora - venc) / (1000 * 60 * 60 * 24));
+        ticketsVencidosPendientes.push({ folio, titulo, area, prioridad, asignadoA, diasVencido, ticketId });
+      }
+    }
+
+    // Por área
+    if (!porArea[area]) porArea[area] = { activos: 0, vencidos: 0, resueltos: 0 };
+    if (!esCerrado) porArea[area].activos++;
+    if (estaVencido) porArea[area].vencidos++;
+    if (esCerrado) porArea[area].resueltos++;
+
+    // Por agente
+    if (asignadoA && asignadoA.includes('@')) {
+      if (!porAgente[asignadoA]) porAgente[asignadoA] = { activos: 0, vencidos: 0, resueltos: 0 };
+      if (!esCerrado) porAgente[asignadoA].activos++;
+      if (estaVencido) porAgente[asignadoA].vencidos++;
+      if (esCerrado) porAgente[asignadoA].resueltos++;
+    }
+  });
+
+  const slaRate = (totalActivos + totalCerrados) > 0
+    ? Math.round(((totalActivos - totalVencidos + totalCerrados) / (totalActivos + totalCerrados)) * 100)
+    : 100;
+
+  // Ordenar vencidos por días (peor primero)
+  ticketsVencidosPendientes.sort((a, b) => b.diasVencido - a.diasVencido);
+
+  // ── Construir tabla de áreas ──────────────────────────────────────────────
+  let tablaAreas = '';
+  Object.keys(porArea).sort().forEach(function(area) {
+    const d = porArea[area];
+    tablaAreas += `
+      <tr>
+        <td style="padding:8px 12px;">${area}</td>
+        <td style="padding:8px 12px;text-align:center;">${d.activos}</td>
+        <td style="padding:8px 12px;text-align:center;color:${d.vencidos > 0 ? '#dc2626' : '#16a34a'};font-weight:bold;">${d.vencidos}</td>
+        <td style="padding:8px 12px;text-align:center;color:#16a34a;">${d.resueltos}</td>
+      </tr>`;
+  });
+
+  // ── Construir tabla de agentes ────────────────────────────────────────────
+  let tablaAgentes = '';
+  Object.keys(porAgente).sort().forEach(function(email) {
+    const d = porAgente[email];
+    const nombre = email.split('@')[0];
+    tablaAgentes += `
+      <tr>
+        <td style="padding:8px 12px;">${nombre}</td>
+        <td style="padding:8px 12px;text-align:center;">${d.activos}</td>
+        <td style="padding:8px 12px;text-align:center;color:${d.vencidos > 0 ? '#dc2626' : '#16a34a'};font-weight:bold;">${d.vencidos}</td>
+        <td style="padding:8px 12px;text-align:center;color:#16a34a;">${d.resueltos}</td>
+      </tr>`;
+  });
+
+  // ── Construir lista de vencidos ───────────────────────────────────────────
+  let listaVencidos = '';
+  ticketsVencidosPendientes.slice(0, 10).forEach(function(t) {
+    const emoji = t.diasVencido >= 7 ? '🔴' : t.diasVencido >= 3 ? '🟠' : '🟡';
+    listaVencidos += `
+      <tr>
+        <td style="padding:8px 12px;">${emoji} #${t.folio}</td>
+        <td style="padding:8px 12px;">${t.titulo.substring(0, 50)}</td>
+        <td style="padding:8px 12px;">${t.area}</td>
+        <td style="padding:8px 12px;">${t.asignadoA.split('@')[0]}</td>
+        <td style="padding:8px 12px;text-align:center;font-weight:bold;color:#dc2626;">${t.diasVencido}d</td>
+      </tr>`;
+  });
+
+  const semanaStr = `${hace7dias.toLocaleDateString('es-MX')} – ${ahora.toLocaleDateString('es-MX')}`;
+
+  // ── Email HTML ────────────────────────────────────────────────────────────
+  const cuerpoEmail = `
+    <h2>📊 Reporte Semanal Help Desk</h2>
+    <p style="color:#64748b;">Período: ${semanaStr}</p>
+
+    <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+      <tr>
+        <td style="background:#eff6ff;border-radius:8px;padding:16px;text-align:center;width:25%;">
+          <div style="font-size:2rem;font-weight:bold;color:#1d4ed8;">${totalCreados}</div>
+          <div style="color:#64748b;font-size:0.85rem;">Creados</div>
+        </td>
+        <td style="width:4%;"></td>
+        <td style="background:#f0fdf4;border-radius:8px;padding:16px;text-align:center;width:25%;">
+          <div style="font-size:2rem;font-weight:bold;color:#16a34a;">${totalResueltos}</div>
+          <div style="color:#64748b;font-size:0.85rem;">Resueltos</div>
+        </td>
+        <td style="width:4%;"></td>
+        <td style="background:${totalVencidos > 0 ? '#fef2f2' : '#f0fdf4'};border-radius:8px;padding:16px;text-align:center;width:25%;">
+          <div style="font-size:2rem;font-weight:bold;color:${totalVencidos > 0 ? '#dc2626' : '#16a34a'};">${totalVencidos}</div>
+          <div style="color:#64748b;font-size:0.85rem;">Vencidos activos</div>
+        </td>
+        <td style="width:4%;"></td>
+        <td style="background:#f8fafc;border-radius:8px;padding:16px;text-align:center;width:25%;">
+          <div style="font-size:2rem;font-weight:bold;color:#0d47a1;">${slaRate}%</div>
+          <div style="color:#64748b;font-size:0.85rem;">Cumplimiento SLA</div>
+        </td>
+      </tr>
+    </table>
+
+    ${ticketsVencidosPendientes.length > 0 ? `
+    <h3 style="color:#dc2626;">🔴 Tickets Vencidos Pendientes (Top 10)</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+      <thead>
+        <tr style="background:#fee2e2;">
+          <th style="padding:8px 12px;text-align:left;">Folio</th>
+          <th style="padding:8px 12px;text-align:left;">Título</th>
+          <th style="padding:8px 12px;text-align:left;">Área</th>
+          <th style="padding:8px 12px;text-align:left;">Agente</th>
+          <th style="padding:8px 12px;text-align:center;">Días vencido</th>
+        </tr>
+      </thead>
+      <tbody>${listaVencidos}</tbody>
+    </table>` : '<p style="color:#16a34a;font-weight:bold;">✅ No hay tickets vencidos pendientes.</p>'}
+
+    <h3 style="margin-top:24px;">📁 Por Área</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+      <thead>
+        <tr style="background:#f1f5f9;">
+          <th style="padding:8px 12px;text-align:left;">Área</th>
+          <th style="padding:8px 12px;text-align:center;">Activos</th>
+          <th style="padding:8px 12px;text-align:center;">Vencidos</th>
+          <th style="padding:8px 12px;text-align:center;">Resueltos</th>
+        </tr>
+      </thead>
+      <tbody>${tablaAreas}</tbody>
+    </table>
+
+    <h3 style="margin-top:24px;">👤 Por Agente</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+      <thead>
+        <tr style="background:#f1f5f9;">
+          <th style="padding:8px 12px;text-align:left;">Agente</th>
+          <th style="padding:8px 12px;text-align:center;">Activos</th>
+          <th style="padding:8px 12px;text-align:center;">Vencidos</th>
+          <th style="padding:8px 12px;text-align:center;">Resueltos</th>
+        </tr>
+      </thead>
+      <tbody>${tablaAgentes}</tbody>
+    </table>
+
+    <p style="margin-top:30px;">
+      <a href="${getScriptUrl()}" class="btn">📊 Ver Dashboard</a>
+    </p>
+  `;
+
+  // ── Mensaje Telegram ──────────────────────────────────────────────────────
+  const msgTelegram = `📊 <b>Reporte Semanal Help Desk</b>\n` +
+    `📅 ${semanaStr}\n\n` +
+    `🎫 Creados: <b>${totalCreados}</b>\n` +
+    `✅ Resueltos: <b>${totalResueltos}</b>\n` +
+    `🔴 Vencidos activos: <b>${totalVencidos}</b>\n` +
+    `📈 Cumplimiento SLA: <b>${slaRate}%</b>\n\n` +
+    (ticketsVencidosPendientes.length > 0
+      ? `⚠️ <b>Top 5 más críticos:</b>\n` +
+        ticketsVencidosPendientes.slice(0, 5).map(t =>
+          `  • #${t.folio} (${t.diasVencido}d) → ${t.asignadoA.split('@')[0]}`
+        ).join('\n')
+      : `✅ Sin tickets vencidos pendientes`) +
+    `\n\n🔗 <a href="${getScriptUrl()}">Ver sistema</a>`;
+
+  // ── Enviar a admins y gerentes ────────────────────────────────────────────
+  try {
+    const cfg = getConfig();
+
+    // Correo a admins
+    const { headers: uh, rows: ur } = _readTableByHeader_(DB.USERS);
+    const um = _headerMap_(uh);
+    const destinatarios = [];
+
+    ur.forEach(function(u) {
+      const rol    = String(u[um.Rol] || '').toLowerCase();
+      const email  = String(u[um.Email] || '');
+      const status = String(u[um.Estatus] || '').toLowerCase();
+      if (status === 'baja') return;
+      if (['admin', 'gerente_sistemas', 'gerente_mantenimiento'].some(r => rol.includes(r.replace('gerente_', 'gerente')))) {
+        if (email && email.includes('@')) destinatarios.push(email);
+      }
+    });
+
+    if (destinatarios.length > 0) {
+      enviarEmailNotificacion(
+        destinatarios.join(','),
+        `📊 Reporte Semanal Help Desk – ${semanaStr}`,
+        cuerpoEmail
+      );
+      Logger.log(LOG + ` Correo enviado a: ${destinatarios.join(', ')}`);
+    }
+
+    // Telegram al canal admin
+    if (cfg.telegram_chat_admin && cfg.telegram_token) {
+      telegramSend(msgTelegram, cfg.telegram_chat_admin);
+      Logger.log(LOG + ' Telegram enviado al canal admin.');
+    }
+
+  } catch (e) {
+    Logger.log(LOG + ' Error enviando reporte: ' + e.message);
+  }
+
+  Logger.log(LOG + ' Reporte semanal completado.');
+}
+
+
+function probarNuevasNotificacionesSLA() {
+  const LOG = '[PruebaNotificacionesSLA]';
+
+  const destinatarios = [
+    'dvaldez@bexalta.mx',
+    'ejasso@bexalta.mx',
+    'jaramirez@bexalta.mx',
+    'jlgonzalez@bexalta.mx',
+    'lmagana@bexalta.mx',
+    'maguzman@bexalta.mx',
+    'cesquivel@bexalta.mx',
+    'rnava@bexalta.mx'
+  ];
+
+  Logger.log(LOG + ' Iniciando prueba...');
+  Logger.log(LOG + ' Enviando a: ' + destinatarios.join(', '));
+
+  const cfg = getConfig();
+  const vencimientoPrueba = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+  const semanaStr = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toLocaleDateString('es-MX') +
+    ' – ' + new Date().toLocaleDateString('es-MX');
+
+  // ── 1. CORREO AL AGENTE (recordatorio diario) ─────────────────────────────
+  try {
+    const cuerpoAgente = `
+      <div style="background:#fff3cd;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:6px;margin-bottom:20px;">
+        <strong>🧪 ESTO ES UNA PRUEBA</strong> — Este correo simula el recordatorio automático 
+        que recibirás cuando tengas tickets vencidos sin resolver.
+      </div>
+
+      <h2>🟠 Recordatorio: SLA Vencido</h2>
+      <div class="alert-box alert-danger">
+        <p style="margin:0;"><strong>Este ticket lleva 3 día(s) vencido sin resolverse</strong></p>
+        <p style="margin:5px 0 0;">Venció: ${new Date(vencimientoPrueba).toLocaleString('es-MX')}</p>
+      </div>
+      <div class="ticket-box">
+        <h3>Ticket #PRUEBA-001</h3>
+        <p><strong>Prueba del nuevo sistema de recordatorios automáticos</strong></p>
+      </div>
+      <div class="info-row"><span class="info-label">Área:</span><span class="info-value">Sistemas</span></div>
+      <div class="info-row"><span class="info-label">Ubicación:</span><span class="info-value">Planta Baja</span></div>
+      <div class="info-row"><span class="info-label">Prioridad:</span><span class="info-value priority-alta">Alta</span></div>
+
+      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px;margin-top:20px;">
+        <h4 style="margin:0 0 8px;color:#0369a1;">ℹ️ ¿Qué es esta notificación?</h4>
+        <p style="margin:0;color:#0369a1;font-size:0.9rem;">
+          A partir de ahora, el sistema enviará este recordatorio <strong>cada día a las 8:00am</strong> 
+          si tienes tickets vencidos sin resolver. 
+          Si un ticket lleva <strong>7 días o más</strong> vencido, 
+          también se notificará automáticamente a tu gerente.
+        </p>
+      </div>
+
+      <p style="margin-top:25px;">
+        <a href="${getScriptUrl()}" class="btn btn-danger">⚡ Ver mis tickets</a>
+      </p>
+    `;
+
+    destinatarios.forEach(function(email) {
+      try {
+        enviarEmailNotificacion(
+          email,
+          '🧪 [PRUEBA] Recordatorio SLA: Ticket #PRUEBA-001 lleva 3 días vencido',
+          cuerpoAgente
+        );
+        Logger.log(LOG + ' ✅ Correo agente enviado a: ' + email);
+      } catch (e) {
+        Logger.log(LOG + ' ❌ Error correo agente a ' + email + ': ' + e.message);
+      }
+    });
+  } catch (e) {
+    Logger.log(LOG + ' ❌ Error bloque correo agente: ' + e.message);
+  }
+
+  // ── 2. CORREO AL GERENTE (escalamiento 7+ días) ───────────────────────────
+  try {
+    const cuerpoGerente = `
+      <div style="background:#fff3cd;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:6px;margin-bottom:20px;">
+        <strong>🧪 ESTO ES UNA PRUEBA</strong> — Este correo simula el escalamiento automático 
+        que recibirás cuando un ticket de tu área lleve 7 días o más sin resolverse.
+      </div>
+
+      <h2>🚨 Escalamiento: Ticket sin resolver por 7 días</h2>
+      <div class="alert-box alert-danger">
+        <p style="margin:0;"><strong>Este ticket lleva 7 días vencido sin resolverse</strong></p>
+        <p style="margin:5px 0 0;">Requiere tu intervención inmediata como gerente del área.</p>
+      </div>
+      <div class="ticket-box">
+        <h3>Ticket #PRUEBA-001</h3>
+        <p><strong>Prueba del nuevo sistema de recordatorios automáticos</strong></p>
+      </div>
+      <div class="info-row"><span class="info-label">Área:</span><span class="info-value">Sistemas</span></div>
+      <div class="info-row"><span class="info-label">Asignado a:</span><span class="info-value">agente@bexalta.mx</span></div>
+      <div class="info-row"><span class="info-label">Prioridad:</span><span class="info-value priority-alta">Alta</span></div>
+
+      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px;margin-top:20px;">
+        <h4 style="margin:0 0 8px;color:#0369a1;">ℹ️ ¿Qué es esta notificación?</h4>
+        <p style="margin:0;color:#0369a1;font-size:0.9rem;">
+          Cuando un ticket de tu área lleve <strong>7 días o más vencido</strong> sin resolverse, 
+          recibirás este escalamiento automático cada día hasta que se resuelva.
+        </p>
+      </div>
+
+      <p style="margin-top:25px;">
+        <a href="${getScriptUrl()}" class="btn btn-danger">🚨 Ver ticket ahora</a>
+      </p>
+    `;
+
+    destinatarios.forEach(function(email) {
+      try {
+        enviarEmailNotificacion(
+          email,
+          '🧪 [PRUEBA] ESCALADO: Ticket #PRUEBA-001 lleva 7 días sin resolverse',
+          cuerpoGerente
+        );
+        Logger.log(LOG + ' ✅ Correo gerente enviado a: ' + email);
+      } catch (e) {
+        Logger.log(LOG + ' ❌ Error correo gerente a ' + email + ': ' + e.message);
+      }
+    });
+  } catch (e) {
+    Logger.log(LOG + ' ❌ Error bloque correo gerente: ' + e.message);
+  }
+
+  // ── 3. CORREO REPORTE SEMANAL ─────────────────────────────────────────────
+  try {
+    const cuerpoReporte = `
+      <div style="background:#fff3cd;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:6px;margin-bottom:20px;">
+        <strong>🧪 ESTO ES UNA PRUEBA</strong> — Este correo simula el reporte semanal 
+        que llegará cada lunes a las 8:00am con el resumen real de la semana.
+      </div>
+
+      <h2>📊 Reporte Semanal Help Desk</h2>
+      <p style="color:#64748b;">Período: ${semanaStr}</p>
+
+      <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+        <tr>
+          <td style="background:#eff6ff;border-radius:8px;padding:16px;text-align:center;width:25%;">
+            <div style="font-size:2rem;font-weight:bold;color:#1d4ed8;">12</div>
+            <div style="color:#64748b;font-size:0.85rem;">Creados</div>
+          </td>
+          <td style="width:4%;"></td>
+          <td style="background:#f0fdf4;border-radius:8px;padding:16px;text-align:center;width:25%;">
+            <div style="font-size:2rem;font-weight:bold;color:#16a34a;">8</div>
+            <div style="color:#64748b;font-size:0.85rem;">Resueltos</div>
+          </td>
+          <td style="width:4%;"></td>
+          <td style="background:#fef2f2;border-radius:8px;padding:16px;text-align:center;width:25%;">
+            <div style="font-size:2rem;font-weight:bold;color:#dc2626;">3</div>
+            <div style="color:#64748b;font-size:0.85rem;">Vencidos activos</div>
+          </td>
+          <td style="width:4%;"></td>
+          <td style="background:#f8fafc;border-radius:8px;padding:16px;text-align:center;width:25%;">
+            <div style="font-size:2rem;font-weight:bold;color:#0d47a1;">78%</div>
+            <div style="color:#64748b;font-size:0.85rem;">Cumplimiento SLA</div>
+          </td>
+        </tr>
+      </table>
+
+      <h3 style="color:#dc2626;">🔴 Tickets Vencidos Pendientes (ejemplo)</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+        <thead>
+          <tr style="background:#fee2e2;">
+            <th style="padding:8px 12px;text-align:left;">Folio</th>
+            <th style="padding:8px 12px;text-align:left;">Título</th>
+            <th style="padding:8px 12px;text-align:left;">Área</th>
+            <th style="padding:8px 12px;text-align:left;">Agente</th>
+            <th style="padding:8px 12px;text-align:center;">Días vencido</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:8px 12px;">🔴 #1042</td>
+            <td style="padding:8px 12px;">Falla en servidor principal</td>
+            <td style="padding:8px 12px;">Sistemas</td>
+            <td style="padding:8px 12px;">agente1</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:bold;color:#dc2626;">9d</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 12px;">🟠 #1055</td>
+            <td style="padding:8px 12px;">Aire acondicionado oficina</td>
+            <td style="padding:8px 12px;">Mantenimiento</td>
+            <td style="padding:8px 12px;">agente2</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:bold;color:#dc2626;">4d</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px;margin-top:20px;">
+        <h4 style="margin:0 0 8px;color:#0369a1;">ℹ️ ¿Qué es este reporte?</h4>
+        <p style="margin:0;color:#0369a1;font-size:0.9rem;">
+          Cada <strong>lunes a las 8:00am</strong> recibirás este resumen con los números 
+          reales de la semana: tickets creados, resueltos, vencidos pendientes, 
+          cumplimiento de SLA, y un desglose por área y por agente.
+        </p>
+      </div>
+
+      <p style="margin-top:25px;">
+        <a href="${getScriptUrl()}" class="btn">📊 Ver Dashboard</a>
+      </p>
+    `;
+
+    destinatarios.forEach(function(email) {
+      try {
+        enviarEmailNotificacion(
+          email,
+          '🧪 [PRUEBA] Reporte Semanal Help Desk – ' + semanaStr,
+          cuerpoReporte
+        );
+        Logger.log(LOG + ' ✅ Correo reporte enviado a: ' + email);
+      } catch (e) {
+        Logger.log(LOG + ' ❌ Error correo reporte a ' + email + ': ' + e.message);
+      }
+    });
+  } catch (e) {
+    Logger.log(LOG + ' ❌ Error bloque reporte: ' + e.message);
+  }
+
+  // ── 4. TELEGRAM al canal admin ────────────────────────────────────────────
+  try {
+    const msgTg = `🧪 <b>[PRUEBA] Nuevas Notificaciones Automáticas</b>\n\n` +
+      `Se está probando el nuevo sistema de recordatorios del Help Desk.\n\n` +
+      `<b>¿Qué cambia?</b>\n` +
+      `🔔 Recordatorio diario a las 8am si tienes tickets vencidos\n` +
+      `🚨 Escalamiento al gerente si un ticket lleva 7+ días vencido\n` +
+      `📊 Reporte semanal cada lunes con el resumen de la semana\n\n` +
+      `<i>Este es un mensaje de prueba. Los mensajes reales tendrán datos de tickets reales.</i>`;
+
+    if (cfg.telegram_chat_admin && cfg.telegram_token) {
+      telegramSend(msgTg, cfg.telegram_chat_admin);
+      Logger.log(LOG + ' ✅ Telegram admin enviado.');
+    } else {
+      Logger.log(LOG + ' ⚠️ Telegram admin no configurado (falta token o chat_id).');
+    }
+  } catch (e) {
+    Logger.log(LOG + ' ❌ Error Telegram: ' + e.message);
+  }
+
+  // ── 5. NOTIFICACIÓN EN SISTEMA a cada destinatario ────────────────────────
+  destinatarios.forEach(function(email) {
+    try {
+      crearNotificacion(
+        email,
+        'info',
+        '🧪 Prueba: Nuevas notificaciones automáticas activadas',
+        'A partir de ahora recibirás recordatorios diarios por tickets vencidos y un reporte cada lunes.',
+        null
+      );
+    } catch (e) {
+      Logger.log(LOG + ' ❌ Error notif sistema a ' + email + ': ' + e.message);
+    }
+  });
+  Logger.log(LOG + ' ✅ Notificaciones en sistema creadas.');
+
+  Logger.log(LOG + ' ✅ Prueba completada.');
+  return '✅ Prueba enviada a ' + destinatarios.length + ' destinatarios. Revisa correo, Telegram y notificaciones del sistema.';
+}
+
+// ── Paso 1: Solo detectar área ────────────────────────────────────────────────
+function asistenteDetectarArea(descripcion) {
+  try {
+    const cfg = getConfig();
+    const apiKey = cfg.groq_api_key;
+    if (!apiKey) return { ok: false, error: 'Groq API key no configurada.' };
+
+    const prompt =
+      'Analiza este problema de soporte y determina si es de SISTEMAS o MANTENIMIENTO.\n\n' +
+      'PROBLEMA: "' + descripcion + '"\n\n' +
+      'REGLAS:\n' +
+      '- SISTEMAS: computadoras, laptops, red, internet, wifi, impresoras, multifuncionales, ' +
+      'teléfonos IP, software, aplicaciones, cámaras, control de acceso, servidores, VPN, ' +
+      'correo electrónico, proyectores, pantallas, videoconferencia\n' +
+      '- MANTENIMIENTO: plomería, fugas de agua, electricidad, lámparas, pintura, ' +
+      'construcción, muebles, puertas, ventanas, limpieza, jardinería, ' +
+      'aire acondicionado (unidad física dañada), elevadores\n' +
+      '- Si hay duda entre sistemas y mantenimiento, elige SISTEMAS\n\n' +
+      'Responde SOLO con JSON sin backticks:\n' +
+      '{"area":"Sistemas o Mantenimiento","confianza":90,"razon":"motivo breve",' +
+      '"preguntaSeguimiento":"si descripción muy vaga haz UNA pregunta, sino vacío"}';
+
+    const response = UrlFetchApp.fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { 'Authorization': 'Bearer ' + apiKey },
+      payload: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: 'Clasificador de área de soporte. Responde SOLO con JSON válido.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.1,
+        max_tokens: 256
+      }),
+      muteHttpExceptions: true
+    });
+
+    if (response.getResponseCode() !== 200) {
+      return { ok: false, error: 'Error IA: ' + response.getResponseCode() };
+    }
+
+    const data = JSON.parse(response.getContentText());
+    const texto = data?.choices?.[0]?.message?.content;
+    if (!texto) return { ok: false, error: 'Sin respuesta.' };
+
+    let res;
+    try { res = JSON.parse(texto); }
+    catch(e) { res = JSON.parse(texto.replace(/```json|```/g, '').trim()); }
+
+    Logger.log('[Asistente] Área detectada: ' + res.area + ' (' + res.confianza + '%)');
+    return { ok: true, area: res.area, confianza: res.confianza, razon: res.razon, preguntaSeguimiento: res.preguntaSeguimiento || '' };
+
+  } catch(e) {
+    Logger.log('Error asistenteDetectarArea: ' + e.message);
+    return { ok: false, error: e.message };
+  }
+}
+
+
+// ── Paso 3: Con área + ubicación, sugerir categoría y mejorar descripción ─────
+function asistenteFinalizarTicket(descripcion, area, ubicacion, emailUsuario) {
+  try {
+    const cfg = getConfig();
+    const apiKey = cfg.groq_api_key;
+    if (!apiKey) return { ok: false, error: 'Groq API key no configurada.' };
+
+    // Leer categorías filtradas por área y ubicación
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetName = area.toLowerCase() === 'mantenimiento' ? 'Categorias_Mtto' : 'Categorias_TI';
+    const sh = ss.getSheetByName(sheetName);
+
+    const nombresVistos = new Set();
+    let listaCategorias = '';
+    let totalCats = 0;
+    const ubicNorm = ubicacion.trim().toLowerCase();
+
+    if (sh && sh.getLastRow() > 1) {
+      sh.getRange(2, 1, sh.getLastRow() - 1, 7).getValues().forEach(function(r) {
+        const nombre   = String(r[0] || '').trim();
+        const catUbics = String(r[2] || '').trim();
+        const keywords = String(r[6] || '').trim();
+        if (!nombre) return;
+
+        // Filtrar por ubicación
+        const ubicsDelCat = catUbics.split(',').map(function(u) { return u.trim().toLowerCase(); });
+        const coincide = ubicsDelCat.some(function(u) {
+          return u === ubicNorm || ubicNorm.includes(u) || u.includes(ubicNorm);
+        });
+        if (!coincide) return;
+
+        // Deduplicar
+        if (nombresVistos.has(nombre)) return;
+        nombresVistos.add(nombre);
+
+        listaCategorias += nombre + (keywords ? ' [' + keywords + ']' : '') + '\n';
+        totalCats++;
+      });
+    }
+
+    // Fallback: todas las del área si no hubo match por ubicación
+    if (!listaCategorias && sh && sh.getLastRow() > 1) {
+      Logger.log('[Asistente] Sin match por ubicación, usando todas del área...');
+      sh.getRange(2, 1, sh.getLastRow() - 1, 7).getValues().forEach(function(r) {
+        const nombre   = String(r[0] || '').trim();
+        const keywords = String(r[6] || '').trim();
+        if (!nombre || nombresVistos.has(nombre)) return;
+        nombresVistos.add(nombre);
+        listaCategorias += nombre + (keywords ? ' [' + keywords + ']' : '') + '\n';
+        totalCats++;
+      });
+    }
+
+    Logger.log('[Asistente] Categorías para ' + area + ' / ' + ubicacion + ': ' + totalCats);
+
+    if (!listaCategorias) {
+      return { ok: false, error: 'No hay categorías para esta área y ubicación.' };
+    }
+
+    const prompt =
+      'Clasifica este ticket y mejora su descripción.\n\n' +
+      'PROBLEMA: "' + descripcion + '"\n' +
+      'ÁREA: ' + area + '\n' +
+      'UBICACIÓN: ' + ubicacion + '\n\n' +
+      'CATEGORÍAS DISPONIBLES (elige EXACTAMENTE de esta lista):\n' +
+      listaCategorias + '\n' +
+      'INSTRUCCIONES:\n' +
+      '1. Elige la categoría más precisa usando las palabras clave [entre corchetes].\n' +
+      '2. Copia el nombre EXACTO sin los corchetes.\n' +
+      '3. Mejora la descripción para que sea técnica y clara (máx 2 oraciones).\n\n' +
+      'Responde SOLO con JSON sin backticks:\n' +
+      '{"categoria":"nombre exacto","confianza":85,"razon":"motivo breve","descripcionMejorada":"versión técnica"}';
+
+    const response = UrlFetchApp.fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { 'Authorization': 'Bearer ' + apiKey },
+      payload: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: 'Clasificador de tickets. Usa SOLO nombres exactos del catálogo. Responde SOLO con JSON.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.1,
+        max_tokens: 384
+      }),
+      muteHttpExceptions: true
+    });
+
+    if (response.getResponseCode() !== 200) {
+      return { ok: false, error: 'Error IA: ' + response.getResponseCode() };
+    }
+
+    const data = JSON.parse(response.getContentText());
+    const texto = data?.choices?.[0]?.message?.content;
+    if (!texto) return { ok: false, error: 'Sin respuesta.' };
+
+    let res;
+    try { res = JSON.parse(texto); }
+    catch(e) { res = JSON.parse(texto.replace(/```json|```/g, '').trim()); }
+
+    // Validar que la categoría exista
+    if (res.categoria && !nombresVistos.has(res.categoria)) {
+      Logger.log('⚠️ Categoría inventada: "' + res.categoria + '"');
+      res.categoria = null;
+      res.categoriaInvalida = true;
+    }
+
+    Logger.log('✅ Asistente final: ' + area + ' → ' + res.categoria + ' (' + res.confianza + '%)');
+    return { ok: true, categoria: res.categoria, confianza: res.confianza, razon: res.razon, descripcionMejorada: res.descripcionMejorada, categoriaInvalida: res.categoriaInvalida || false };
+
+  } catch(e) {
+    Logger.log('Error asistenteFinalizarTicket: ' + e.message);
     return { ok: false, error: e.message };
   }
 }
