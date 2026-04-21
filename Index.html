@@ -5040,26 +5040,35 @@ canvas {
       </button>
       
       <div class="notif-dropdown" id="notifDropdown">
-        <div class="notif-header">
-          <h6><i class="bi bi-bell me-2"></i>Notificaciones</h6>
-          <button class="btn btn-link btn-sm text-primary p-0" onclick="App.markAllNotifsRead()">
-            Marcar todo leído
-          </button>
-        </div>
-        
-        <div class="notif-body" id="notifBody">
-          <div class="notif-empty">
-            <i class="bi bi-bell-slash"></i>
-            <p>No hay notificaciones</p>
-          </div>
-        </div>
-        
-        <div class="notif-footer">
-          <a href="#" onclick="App.openAllNotifications(); return false;">
-            Ver todas las notificaciones
-          </a>
-        </div>
-      </div>
+  <div class="notif-header">
+    <h6><i class="bi bi-bell me-2"></i>Notificaciones</h6>
+    <div class="d-flex align-items-center gap-2">
+      <button id="btnToggleSonido" 
+              class="btn btn-sm btn-link text-muted p-0" 
+              onclick="App.toggleSonidoNotif()" 
+              title="Silenciar notificaciones">
+        <i class="bi bi-bell-fill"></i>
+      </button>
+      <button class="btn btn-link btn-sm text-primary p-0" onclick="App.markAllNotifsRead()">
+        Marcar todo leído
+      </button>
+    </div>
+  </div>
+  
+  <div class="notif-body" id="notifBody">
+    <div class="notif-empty">
+      <i class="bi bi-bell-slash"></i>
+      <p>No hay notificaciones</p>
+    </div>
+  </div>
+  
+  <div class="notif-footer">
+    <a href="#" onclick="App.openAllNotifications(); return false;">
+      Ver todas las notificaciones
+    </a>
+  </div>
+</div>
+
     </div>
 
     <div id="availabilityWrapper" class="d-none">
@@ -7197,32 +7206,45 @@ canvas {
             </div>
           </div>
 
-          <div class="col-12">
-            <label class="form-label fw-semibold">
-              <i class="bi bi-card-heading me-1"></i>Título
-            </label>
-            <input id="nTitulo" class="form-control bg-light" placeholder="Se genera automáticamente" readonly>
-          </div>
+<div class="col-12">
+  <label class="form-label fw-semibold">
+    <i class="bi bi-card-heading me-1"></i>Título
+  </label>
+  <input id="nTitulo" class="form-control bg-light" placeholder="Se genera automáticamente" readonly>
+</div>
 
-          <div class="col-12">
-            <label class="form-label fw-semibold">
-              <i class="bi bi-text-paragraph me-1"></i>Descripción
-            </label>
-            <div class="position-relative">
-              <textarea
-                id="nDesc"
-                class="form-control"
-                style="height:120px"
-                placeholder="Describe tu problema con el mayor detalle posible..."
-              ></textarea>
-              <div
-                id="aiSuggestBadge"
-                class="position-absolute top-0 end-0 mt-2 me-3 badge bg-info text-dark d-none shadow-sm"
-              >
-                <i class="bi bi-cpu"></i> IA analizando…
-              </div>
-            </div>
-          </div>
+<div class="col-12">
+  <label class="form-label fw-semibold">
+    <i class="bi bi-text-paragraph me-1"></i>Descripción
+  </label>
+  <div class="position-relative">
+    <textarea
+      id="nDesc"
+      class="form-control"
+      style="height:120px"
+      placeholder="Describe tu problema con el mayor detalle posible..."
+    ></textarea>
+    <div
+      id="aiSuggestBadge"
+      class="position-absolute top-0 end-0 mt-2 me-3 badge bg-info text-dark d-none shadow-sm"
+    >
+      <i class="bi bi-cpu"></i> IA analizando...
+    </div>
+  </div>
+
+  <!-- Botón IA — dentro del mismo col-12 de descripción -->
+  <div class="d-flex align-items-center justify-content-between mt-2">
+    <small id="iaHint" class="text-muted fst-italic"></small>
+    <button type="button"
+            id="btnSugerirIA"
+            class="btn btn-sm"
+            style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;font-size:0.8rem;"
+            onclick="App.sugerirCategoriaDesdeDescripcion()"
+            title="Gemini IA analizará tu descripción y sugerirá la categoría correcta">
+      <i class="bi bi-cpu me-1"></i>Sugerir categoría con IA
+    </button>
+  </div>
+</div>
 
           <div class="col-12">
   <label class="form-label fw-semibold">
@@ -7361,6 +7383,24 @@ canvas {
             <input type="hidden" id="admUbicacion" value="">
           </div>
         </div>
+
+        <!-- Agregar después del div de Ubicación(es) existente -->
+<div class="row g-2 mb-2" id="admUbicFisicaWrapper" style="display:none;">
+  <div class="col-12">
+    <label class="form-label small fw-bold">
+      Ciudad Física del Agente
+      <span class="text-muted fw-normal">(donde está físicamente)</span>
+    </label>
+    <select id="admUbicFisica" class="form-select">
+      <option value="">Selecciona ciudad...</option>
+      <!-- Se llena dinámicamente con las mismas ubicaciones del catálogo -->
+    </select>
+    <div class="form-text small">
+      <i class="bi bi-info-circle me-1"></i>
+      Para Mantenimiento: solo se asignarán tickets de esta ciudad al agente.
+    </div>
+  </div>
+</div>
 
         <div class="mb-3 p-2 bg-light rounded border">
           <label class="form-label small fw-bold text-secondary">Estatus de la Cuenta</label>
@@ -7822,6 +7862,175 @@ canvas {
   </div>
 </div>
 
+<!-- Botón flotante asistente IA -->
+<div id="asistenteFAB" 
+     onclick="App.abrirAsistenteIA()"
+     title="Asistente IA — Crea tu ticket rápido"
+     style="
+       position:fixed; bottom:80px; right:20px; z-index:3000;
+       width:52px; height:52px; border-radius:50%;
+       background:linear-gradient(135deg,#667eea,#764ba2);
+       color:white; border:none; cursor:pointer;
+       box-shadow:0 4px 16px rgba(102,126,234,0.5);
+       display:flex; align-items:center; justify-content:center;
+       font-size:1.4rem; transition:transform 0.2s;
+     "
+     onmouseover="this.style.transform='scale(1.1)'"
+     onmouseout="this.style.transform='scale(1)'">
+  ⚡
+</div>
+
+
+<!-- Modal Asistente IA -->
+<div class="modal fade" id="modalAsistenteIA" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:520px;">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header border-0 pb-0"
+           style="background:linear-gradient(135deg,#667eea,#764ba2);border-radius:12px 12px 0 0;">
+        <div class="d-flex align-items-center gap-2 text-white">
+          <span style="font-size:1.5rem;">⚡</span>
+          <div>
+            <h5 class="modal-title mb-0">Asistente IA</h5>
+            <small style="opacity:0.8;">Describe tu problema y lo clasifico automáticamente</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body p-4">
+
+        <!-- ── PASO 1: Descripción ─────────────────────────── -->
+        <div id="asistentePaso1">
+          <small class="text-muted fw-bold d-block mb-2">⚡ PROBLEMAS FRECUENTES:</small>
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <button class="btn btn-sm btn-outline-secondary" onclick="App.usarPromptRapido('No puedo entrar a mi computadora')">💻 No entra mi PC</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="App.usarPromptRapido('La impresora no imprime')">🖨️ Impresora</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="App.usarPromptRapido('No tengo conexión a internet')">🌐 Sin internet</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="App.usarPromptRapido('El aire acondicionado no enfría')">❄️ Clima</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="App.usarPromptRapido('Mi teléfono no tiene tono')">📞 Teléfono</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="App.usarPromptRapido('Falla en el sistema EnKontrol')">💾 EnKontrol</button>
+          </div>
+          <label class="form-label fw-semibold">¿Cuál es tu problema?</label>
+          <textarea id="asistenteDescInput" class="form-control mb-3" rows="3"
+                    placeholder="Ejemplo: No puedo imprimir desde mi computadora, la impresora dice error de conexión..."></textarea>
+          <button class="btn btn-primary w-100 fw-semibold" onclick="App.analizarConAsistente()">
+            <i class="bi bi-cpu me-2"></i>Analizar con IA
+          </button>
+        </div>
+
+        <!-- ── ANALIZANDO ──────────────────────────────────── -->
+        <div id="asistentePasoAnalizando" class="d-none text-center py-5">
+          <div class="spinner-border text-primary mb-3" style="width:2.5rem;height:2.5rem;"></div>
+          <p class="text-muted mb-0">Analizando tu problema...</p>
+        </div>
+
+        <!-- ── PREGUNTA DE SEGUIMIENTO ─────────────────────── -->
+        <div id="asistentePasoPregunta" class="d-none">
+          <div class="alert alert-info py-2 mb-3">
+            <i class="bi bi-question-circle me-1"></i>
+            <span id="asistentePreguntaTexto"></span>
+          </div>
+          <textarea id="asistentePreguntaResp" class="form-control mb-3" rows="2" placeholder="Tu respuesta..."></textarea>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary flex-grow-1" onclick="App.reiniciarAsistente()">
+              <i class="bi bi-arrow-left me-1"></i>Volver
+            </button>
+            <button class="btn btn-primary flex-grow-1" onclick="App.responderPreguntaAsistente()">
+              Continuar
+            </button>
+          </div>
+        </div>
+
+        <!-- ── PASO 2: Área + Ubicación ───────────────────── -->
+        <div id="asistentePaso2" class="d-none">
+          <!-- Indicador de pasos -->
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="badge bg-secondary rounded-pill">1</span>
+            <div style="height:2px;flex:1;background:#e2e8f0;"></div>
+            <span class="badge bg-primary rounded-pill">2</span>
+            <div style="height:2px;flex:1;background:#e2e8f0;"></div>
+            <span class="badge bg-secondary rounded-pill">3</span>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-muted">ÁREA DETECTADA</label>
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span id="asistenteAreaConfirm" class="badge bg-primary fs-6 px-3 py-2">—</span>
+              <small class="text-muted">¿No es correcta?</small>
+            </div>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-sm btn-outline-primary btn-area-asistente"
+                      data-area="Sistemas" onclick="App.cambiarAreaAsistente('Sistemas')">
+                💻 Sistemas
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-success btn-area-asistente"
+                      data-area="Mantenimiento" onclick="App.cambiarAreaAsistente('Mantenimiento')">
+                🔧 Mantenimiento
+              </button>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-muted">
+              ¿DESDE QUÉ UBICACIÓN REPORTAS?
+            </label>
+            <div id="asistenteUbicBtns2" class="d-flex flex-wrap gap-2"></div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary flex-grow-1" onclick="App.reiniciarAsistente()">
+              <i class="bi bi-arrow-left me-1"></i>Volver
+            </button>
+            <button class="btn btn-primary flex-grow-1 fw-semibold" onclick="App.confirmarPaso2()">
+              Buscar categoría <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- ── PASO 3: Confirmar y crear ──────────────────── -->
+        <div id="asistentePaso3" class="d-none">
+          <!-- Indicador de pasos -->
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="badge bg-secondary rounded-pill">1</span>
+            <div style="height:2px;flex:1;background:#0d47a1;"></div>
+            <span class="badge bg-secondary rounded-pill">2</span>
+            <div style="height:2px;flex:1;background:#0d47a1;"></div>
+            <span class="badge bg-primary rounded-pill">3</span>
+          </div>
+
+          <div class="p-3 rounded mb-3"
+               style="background:linear-gradient(135deg,#f0f4ff,#f5f0ff);border:1px solid #c7d2fe;">
+            <div class="d-flex justify-content-between align-items-center">
+              <small class="fw-bold text-muted" id="asistenteResumen3"></small>
+              <span id="asistenteConf3" class="badge bg-success">—</span>
+            </div>
+            <div class="mt-2 fw-bold" id="asistenteCat3"></div>
+            <small class="text-muted" id="asistenteRazon3"></small>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-muted">
+              DESCRIPCIÓN
+              <span class="badge bg-success ms-1" style="font-size:0.65rem;">Mejorada por IA</span>
+            </label>
+            <textarea id="asistenteDescFinal" class="form-control" rows="3"></textarea>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary flex-grow-1" onclick="App._mostrarPasoAsistente_(2); App._mostrarPaso2_()">
+              <i class="bi bi-arrow-left me-1"></i>Volver
+            </button>
+            <button class="btn btn-success flex-grow-1 fw-semibold" onclick="App.crearTicketDesdeAsistente()">
+              <i class="bi bi-send-fill me-1"></i>Crear ticket
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <div id="toastContainer" style="position:fixed; right:16px; bottom:16px; z-index:4000;"></div>
 
@@ -7834,62 +8043,38 @@ canvas {
 </script>
 
 <script>
+
 // =========================================================================
-// LECTOR DE URL PARA AUTO-ABRIR TICKET (Vía Custom Events)
+// SISTEMA DE DEEP LINK — SIMPLE Y DIRECTO
 // =========================================================================
-document.addEventListener('DOMContentLoaded', function() {
-  let ticketIdDesdeUrl = (typeof AUTO_OPEN_TICKET !== 'undefined' && AUTO_OPEN_TICKET.trim() !== "") 
-                         ? AUTO_OPEN_TICKET.trim() 
-                         : null;
 
-  if (!ticketIdDesdeUrl) {
-    google.script.url.getLocation(function(location) {
-      const param = location.parameter.ticket || location.parameter.tid || location.parameter.id;
-      if (param) {
-        localStorage.setItem('ticketPendiente', param); 
-        intentarAbrirTicket(); 
-      }
-    });
-  } else {
-    localStorage.setItem('ticketPendiente', ticketIdDesdeUrl);
-    intentarAbrirTicket();
-  }
-});
+var _TICKET_A_ABRIR_ = (typeof AUTO_OPEN_TICKET !== 'undefined' && AUTO_OPEN_TICKET && AUTO_OPEN_TICKET.trim() !== '')
+  ? AUTO_OPEN_TICKET.trim() : null;
 
-function intentarAbrirTicket(forzarApertura = false) {
-  const ticketGuardado = localStorage.getItem('ticketPendiente');
-  if (!ticketGuardado) return;
+console.log('🔍 [Init] AUTO_OPEN_TICKET del backend:', _TICKET_A_ABRIR_);
 
-  if (forzarApertura || (typeof USER !== 'undefined' && USER != null)) {
-    console.log("🔗 [Auto-Open] Sesión válida. Lanzando evento para abrir ticket...");
-    
-    let intentos = 0;
-    
-    // El emisor "grita" el ID del ticket cada medio segundo
-    const emisor = setInterval(() => {
-      // Si otro script ya lo abrió y borró la memoria, nos apagamos felices
-      if (!localStorage.getItem('ticketPendiente')) {
-        console.log("✅ [Auto-Open] El ticket fue abierto exitosamente por el otro script.");
-        clearInterval(emisor);
-        return;
-      }
-      
-      intentos++;
-      console.log(`📢 [Auto-Open] Emitiendo señal de apertura... (Intento ${intentos})`);
-      
-      // Lanzamos el grito con el ID del ticket empaquetado
-      document.dispatchEvent(new CustomEvent('abrirTicketDirecto', { detail: ticketGuardado.trim() }));
-      
-      if (intentos >= 20) {
-        console.log("❌ [Auto-Open] Nadie escuchó el evento tras 10 segundos.");
-        clearInterval(emisor);
-      }
-    }, 500); 
-    
-  } else {
-    console.log("🔒 [Auto-Open] Esperando login para abrir el ticket...");
-  }
+const _BC_ = (typeof BroadcastChannel !== 'undefined')
+  ? new BroadcastChannel('bexalta_helpdesk') : null;
+
+if (_BC_) {
+  _BC_.onmessage = function(e) {
+    if (e.data?.tipo === 'abrirTicket' && e.data?.ticketId) {
+      console.log('📡 [BC] Señal recibida. Abriendo ticket:', e.data.ticketId);
+      _BC_.postMessage({ tipo: 'ticketTomado', ticketId: e.data.ticketId });
+      window.focus();
+      // Aquí sí necesitamos App.openDetail porque estamos fuera del IIFE
+      const abrirBC = (id, intentos) => {
+        if (typeof App !== 'undefined' && typeof App.openDetail === 'function' && App.isSessionReady()) {
+          App.openDetail(id);
+        } else if (intentos < 40) {
+          setTimeout(() => abrirBC(id, intentos + 1), 500);
+        }
+      };
+      abrirBC(e.data.ticketId, 0);
+    }
+  };
 }
+
 </script>
 
 <script>
@@ -8179,7 +8364,34 @@ function clearStoredSession() {
   }
 }
 
-// Función para restaurar sesión al cargar la página
+function _abrirDeepLink_() {
+  if (!_TICKET_A_ABRIR_) return;
+  const ticketId = _TICKET_A_ABRIR_;
+  _TICKET_A_ABRIR_ = null;
+
+  if (_BC_) {
+    let respondio = false;
+    const handler = function(e) {
+      if (e.data?.tipo === 'ticketTomado' && e.data?.ticketId === ticketId) {
+        respondio = true;
+        _BC_.removeEventListener('message', handler);
+      }
+    };
+    _BC_.addEventListener('message', handler);
+    _BC_.postMessage({ tipo: 'abrirTicket', ticketId });
+
+    setTimeout(() => {
+      _BC_.removeEventListener('message', handler);
+      if (!respondio) {
+        // Nadie respondió — abrir aquí directo (estamos dentro del IIFE)
+        setTimeout(() => openDetail(ticketId), 500);
+      }
+    }, 1500);
+  } else {
+    setTimeout(() => openDetail(ticketId), 500);
+  }
+}
+
 function tryRestoreSession() {
   const storedSession = getStoredSession();
   
@@ -8188,7 +8400,6 @@ function tryRestoreSession() {
     BOOT = storedSession.boot;
     UBICACIONES_CACHE = BOOT.ubicaciones || [];
     
-    // === FIX: Asegurar que el panel de detalle esté cerrado al restaurar ===
     const detailPanel = document.getElementById('detailPanel');
     if (detailPanel) {
       detailPanel.classList.remove('show');
@@ -8205,17 +8416,16 @@ function tryRestoreSession() {
     startNotifPolling();
     startSessionMonitor();
     setupRoleUI();
-
-    var autoTicketId = (typeof AUTO_OPEN_TICKET !== 'undefined') ? AUTO_OPEN_TICKET : '';
-    if (autoTicketId && autoTicketId.trim() !== '') {
-      setTimeout(function() {
-        if (typeof openDetail === 'function') openDetail(autoTicketId.trim());
-      }, 2000);
-      AUTO_OPEN_TICKET = '';
-    }
     loadDashboard();
+
+    // Sincronizar ícono al cargar
+setTimeout(() => actualizarIconoSonido(), 1000);
     
     console.log('✅ Sesión restaurada para:', USER.email);
+    setTimeout(() => _abrirDeepLink_(), 1000);
+
+  
+    
     return true;
   }
   
@@ -8393,23 +8603,15 @@ function login() {
       $('appShell').classList.remove('d-none');
       $('sidebar').style.display = 'block';
       $('topbar').style.display = 'flex';
-      
+
       // 4. Actualizar UI del usuario
       $('userChip').textContent = `${USER.nombre || USER.email} · ${USER.rol || 'usuario'}`;
       $('userInfoBrief').textContent = BOOT.config?.nombreSistema ? ('· ' + BOOT.config.nombreSistema) : '';
 
-      // 5. Cargar la vista (Dashboard) correspondiente al rol
+      // 5. Cargar la vista correspondiente al rol
       setupRoleUI();
 
-      // =========================================================================
-      // 6. DEEP-LINK: Auto-abrir ticket pendiente (Si viene desde el correo)
-      // =========================================================================
-      console.log("🔑 [Login] Proceso de login exitoso. Verificando tickets pendientes...");
-      if (typeof intentarAbrirTicket === 'function') {
-        intentarAbrirTicket(true);
-      } else {
-        console.warn("⚠️ [Login] La función intentarAbrirTicket no está definida.");
-      }
+setTimeout(() => _abrirDeepLink_(), 1000);
 
     })
     .withFailureHandler(err => {
@@ -8756,7 +8958,7 @@ function switchModule(id) {
         window.open(url + '?action=reportesBI', '_blank');
       })
       .withFailureHandler(function (err) {
-        alert('No se pudo obtener la URL del reporte: ' + err);
+        mostrarToast('No se pudo obtener la URL del reporte: ' + (err.message || err), 'danger');
       })
       .getScriptUrl();
     return;
@@ -8769,8 +8971,8 @@ function switchModule(id) {
 
   // Limpiar filtros especiales si se navega por el menú lateral
   if (id !== 'modDash' && !NAV_FROM_DASHBOARD) {
-      FILTRO_ESPECIAL = { usuario: null, sistemas: null, mantenimiento: null, gerente: null };
-      document.querySelectorAll('.filter-active-alert').forEach(el => el.classList.add('d-none'));
+    FILTRO_ESPECIAL = { usuario: null, sistemas: null, mantenimiento: null, gerente: null };
+    document.querySelectorAll('.filter-active-alert').forEach(el => el.classList.add('d-none'));
   }
 
   // Limpiar botón "Regresar" si existía
@@ -8812,29 +9014,30 @@ function switchModule(id) {
   const crumb = document.getElementById('crumb');
   if (crumb) crumb.textContent = mapCrumb[id] || '';
 
-  // 6. CARGA DE DATOS ESPECÍFICA POR MÓDULO (CON CORRECCIONES DE VISITAS)
-  
+  // 6. CARGA DE DATOS ESPECÍFICA POR MÓDULO
+  // Nota: se pasa `true` como último parámetro = modo silencioso (sin spinner)
+
   if (id === 'modDash') {
-    loadDashboard();
+    loadDashboard(0, true);
     iniciarDashboardAutoRefresh();
   } else {
     detenerDashboardAutoRefresh();
   }
-  
+
   if (id === 'modUsuario') {
-    reloadTicketsRole('usuario', 1);
+    reloadTicketsRole('usuario', PAGE['usuario'] || 1, true);
   }
-  
+
   // --- Módulo Sistemas ---
   if (id === 'modSistemas') {
-    reloadTicketsRole('agente_sistemas', 1);
+    reloadTicketsRole('agente_sistemas', PAGE['agente_sistemas'] || 1, true);
     if (typeof loadVisitasSistemas === 'function') loadVisitasSistemas();
   }
-  
+
   // --- Módulo Mantenimiento ---
   if (id === 'modManto') {
-    reloadTicketsRole('agente_mantenimiento', 1);
-    if (typeof loadVisitasManto === 'function') loadVisitasManto(); // Carga de visitas Mtto
+    reloadTicketsRole('agente_mantenimiento', PAGE['agente_mantenimiento'] || 1, true);
+    if (typeof loadVisitasManto === 'function') loadVisitasManto();
   }
 
   // --- Módulo Gerencia ---
@@ -8844,12 +9047,13 @@ function switchModule(id) {
     const titulo = document.getElementById('gerenteTitulo');
 
     if (titulo) {
-        if (role === 'admin' || role.includes('superadmin')) titulo.textContent = 'Gerencia General';
-        else titulo.textContent = 'Gerencia · ' + (areaGerente.charAt(0).toUpperCase() + areaGerente.slice(1));
+      if (role === 'admin' || role.includes('superadmin')) titulo.textContent = 'Gerencia General';
+      else titulo.textContent = 'Gerencia · ' + (areaGerente.charAt(0).toUpperCase() + areaGerente.slice(1));
     }
 
     cargarAgentesParaFiltro();
-    reloadGerenteTickets(1);
+    reloadGerenteTickets(PAGE[getGerenciaRoleForRequest()] || 1, true);
+    if (typeof cargarEscalamientosPendientes === 'function') cargarEscalamientosPendientes();
     if (typeof loadVisitasGerente === 'function') loadVisitasGerente();
     if (typeof loadEscalamientosPendientes === 'function') loadEscalamientosPendientes();
   }
@@ -8858,7 +9062,7 @@ function switchModule(id) {
     adminLoadUsers();
     adminSyncCatalogos();
   }
-  
+
   if (id === 'reportes_agente') {
     setupReportesUI();
     loadReportMetrics();
@@ -8866,7 +9070,7 @@ function switchModule(id) {
 
   // 7. RENDERIZAR BOTÓN "REGRESAR" SI VIENE DEL DASHBOARD
   if (NAV_FROM_DASHBOARD && id !== 'modDash') {
-      setTimeout(() => renderBackButton(id), 100);
+    setTimeout(() => renderBackButton(id), 100);
   }
 }
 
@@ -9016,41 +9220,67 @@ function getPrefixByRole(role) {
 }
 
 // ============================================================================
-// 4. CORRECCIÓN CRÍTICA: reloadTicketsRole (OPTIMIZADA)
+// HELPER: Genera filas skeleton para la tabla mientras carga
+// ============================================================================
+function renderSkeletonRows(tbodyId, numCols, numRows) {
+  numRows = numRows || 6;
+  const tb = document.getElementById(tbodyId);
+  if (!tb) return;
+
+  const celdaSkeleton = `<td><div class="skeleton shimmer" style="height:14px;border-radius:6px;width:80%;"></div></td>`;
+  let html = '';
+  for (let i = 0; i < numRows; i++) {
+    html += `<tr style="opacity:${1 - i * 0.12}">` + celdaSkeleton.repeat(numCols) + `</tr>`;
+  }
+  tb.innerHTML = html;
+}
+
+// ============================================================================
+// reloadTicketsRole — con cache-first + skeleton
 // ============================================================================
 function reloadTicketsRole(role, page, silent) {
   if (page === undefined) page = 1;
   if (silent === undefined) silent = false;
-  
+
   PAGE[role] = page;
   var filter = filtersByRole(role);
-  
+
   var modulo = 'usuario';
   if (role === 'agente_sistemas') modulo = 'sistemas';
   else if (role === 'agente_mantenimiento') modulo = 'mantenimiento';
 
-  // --- SOFT LOADING: Encontrar la tabla y atenuarla ---
-  // Mapeo inverso de la tabla según el módulo
-  const tablasMap = {
-    'usuario': 'rows_u',
-    'sistemas': 'rows_s',
-    'mantenimiento': 'rows_m',
-    'gerente': 'rows_g'
-  };
-  
+  const tablasMap = { 'usuario': 'rows_u', 'sistemas': 'rows_s', 'mantenimiento': 'rows_m', 'gerente': 'rows_g' };
+  const colsMap   = { 'usuario': 7,        'sistemas': 8,         'mantenimiento': 8,          'gerente': 9 };
+
   const idTabla = tablasMap[modulo] || 'rows_u';
+  const numCols = colsMap[modulo] || 7;
   const containerTabla = document.getElementById(idTabla);
-  
-  if (!silent && containerTabla) {
-    // Si la tabla ya existe, aplicamos Carga Suave en lugar de Loader bloqueante
-    containerTabla.style.transition = 'opacity 0.2s ease';
-    containerTabla.style.opacity = '0.4';
-    containerTabla.style.pointerEvents = 'none';
-  } else if (!silent) {
-    // Si no encontramos la tabla, usamos el loader clásico
-    showLoading(true, 'Cargando tickets...');
+
+  // ── CACHE-FIRST: mostrar datos anteriores al instante ──────────────────
+  const cacheMap = {
+    'usuario':       () => TICKETS_USUARIO_CACHE,
+    'sistemas':      () => TICKETS_SISTEMAS_CACHE,
+    'mantenimiento': () => TICKETS_MANTO_CACHE,
+    'gerente':       () => TICKETS_GERENTE_CACHE
+  };
+  const cacheActual = (cacheMap[modulo] ? cacheMap[modulo]() : null) || [];
+
+  if (containerTabla) {
+    if (cacheActual.length > 0) {
+      // Hay datos previos → mostrarlos YA y atenuar suavemente
+      renderTickets(modulo, cacheActual, cacheActual.length);
+      containerTabla.style.transition = 'opacity 0.15s ease';
+      containerTabla.style.opacity = '0.5';
+      containerTabla.style.pointerEvents = 'none';
+    } else {
+      // Sin caché → skeleton animado
+      renderSkeletonRows(idTabla, numCols, 6);
+      containerTabla.style.opacity = '1';
+      containerTabla.style.pointerEvents = 'none';
+    }
   }
 
+  // Sin skeleton si es silent y ya hay datos: solo atenuar (ya hecho arriba)
   if (!silent && !COLUMNAS_VISIBLES[role]) {
     cargarPreferenciasColumnas();
     actualizarColumnasTabla(modulo);
@@ -9058,42 +9288,35 @@ function reloadTicketsRole(role, page, silent) {
 
   google.script.run
     .withSuccessHandler(function(res) {
-      if (!silent) showLoading(false);
-      
-      // --- RESTAURAR OPACIDAD AL INSTANTE ---
+      // Restaurar tabla al instante
       if (containerTabla) {
+        containerTabla.style.transition = 'opacity 0.2s ease';
         containerTabla.style.opacity = '1';
         containerTabla.style.pointerEvents = 'auto';
       }
 
       res = res || { items: [], total: 0, counts: {} };
-
       var ticketsOrdenados = ordenarTicketsPorReglaNegocio(res.items || []);
 
-      // Cachear
-      if (role === 'usuario') TICKETS_USUARIO_CACHE = ticketsOrdenados;
+      // Actualizar caché
+      if (role === 'usuario')              TICKETS_USUARIO_CACHE = ticketsOrdenados;
       else if (role === 'agente_sistemas') TICKETS_SISTEMAS_CACHE = ticketsOrdenados;
       else if (role === 'agente_mantenimiento') TICKETS_MANTO_CACHE = ticketsOrdenados;
       TICKETS_CACHE[modulo] = ticketsOrdenados;
 
-      // Renderizar directamente lo que vino del servidor.
       renderTickets(modulo, ticketsOrdenados, res.total);
 
-      // REFRESCO AUTOMÁTICO DE VISITAS PROGRAMADAS
-      if (role === 'agente_sistemas' && typeof loadVisitasSistemas === 'function') loadVisitasSistemas();
-      if (role === 'agente_mantenimiento' && typeof loadVisitasManto === 'function') loadVisitasManto();
+      if (role === 'agente_sistemas'      && typeof loadVisitasSistemas === 'function') loadVisitasSistemas();
+      if (role === 'agente_mantenimiento' && typeof loadVisitasManto    === 'function') loadVisitasManto();
 
-      // Si hay filtro especial, mostrar banner visual
       if (FILTRO_ESPECIAL[modulo]) {
         var sufijos = { usuario: 'Usuario', sistemas: 'Sistemas', mantenimiento: 'Manto' };
-        var alertId = 'filtroActivo' + sufijos[modulo];
-        var alertEl = document.getElementById(alertId);
+        var alertEl = document.getElementById('filtroActivo' + sufijos[modulo]);
         if (alertEl) alertEl.classList.remove('d-none');
       }
 
       updateChipCounts(role, ticketsOrdenados);
-      
-      // Stats con counts del backend
+
       if (role === 'usuario') {
         actualizarEstadisticasUsuario(ticketsOrdenados, res.counts);
       } else if (role.includes('agente')) {
@@ -9101,7 +9324,6 @@ function reloadTicketsRole(role, page, silent) {
       }
     })
     .withFailureHandler(function(e) {
-      if (!silent) showLoading(false);
       if (containerTabla) {
         containerTabla.style.opacity = '1';
         containerTabla.style.pointerEvents = 'auto';
@@ -10126,16 +10348,15 @@ if (fileList) fileList.innerHTML = '';
 }
 
 
-  function sugerirCategoriaDesdeDescripcion() {
-  const desc = $('nDesc')?.value?.trim() || '';
+function sugerirCategoriaDesdeDescripcion() {
+  const desc     = $('nDesc')?.value?.trim()     || '';
   const ubicacion = $('nUbicacion')?.value?.trim() || '';
+  const area      = $('nArea')?.value?.trim()      || '';
 
-  // Validaciones
   if (!desc || desc.length < 10) {
     mostrarToast('Escribe una descripción más detallada (mínimo 10 caracteres)', 'warning');
     return;
   }
-
   if (!ubicacion || ubicacion.startsWith('--')) {
     mostrarToast('Primero selecciona una ubicación', 'warning');
     return;
@@ -10143,119 +10364,222 @@ if (fileList) fileList.innerHTML = '';
 
   const badge = $('aiSuggestBadge');
   const btnIA = $('btnSugerirIA');
-  const hint = $('iaHint');
-  
-  // Mostrar estado de carga
-  if (badge) {
-    badge.classList.remove('d-none');
-    badge.innerHTML = '<i class="bi bi-cpu"></i> Analizando...';
-  }
-  if (btnIA) {
-    btnIA.disabled = true;
-    btnIA.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analizando...';
-  }
-  if (hint) {
-    hint.textContent = 'Procesando tu descripción...';
-  }
+  const hint  = $('iaHint');
+
+  if (badge) { badge.classList.remove('d-none'); badge.innerHTML = '<i class="bi bi-cpu"></i> Analizando...'; }
+  if (btnIA) { btnIA.disabled = true; btnIA.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analizando...'; }
+  if (hint)  { hint.textContent = area ? `Buscando categorías en área: ${area}...` : 'Analizando descripción...'; }
 
   google.script.run
     .withSuccessHandler(sug => {
       // Restaurar botón
-      if (btnIA) {
-        btnIA.disabled = false;
-        btnIA.innerHTML = '<i class="bi bi-cpu me-1"></i>Sugerir con IA';
-      }
-      
-      // Si no hay sugerencia clara
-      if (!sug?.area || !sug?.categoria || sug.confianza < 25) {
-        if (badge) {
-          badge.innerHTML = '<i class="bi bi-question-circle"></i> Sin sugerencia';
-          setTimeout(() => badge.classList.add('d-none'), 2000);
+      if (btnIA) { btnIA.disabled = false; btnIA.innerHTML = '<i class="bi bi-cpu me-1"></i>Sugerir con IA'; }
+
+      if (!sug?.ok) {
+        if (badge) { 
+          badge.innerHTML = '<i class="bi bi-exclamation-circle"></i> Sin sugerencia'; 
+          setTimeout(() => badge.classList.add('d-none'), 3000); 
         }
-        if (hint) {
-          hint.textContent = 'No se encontró una categoría clara. Intenta ser más específico.';
-        }
+        if (hint) { hint.textContent = sug?.error || 'No se encontró categoría. Intenta con más detalle.'; }
         return;
       }
 
-      // Mostrar resultado en el badge
+      // Badge de confianza
       if (badge) {
         const colorConfianza = sug.confianza >= 80 ? 'bg-success' : sug.confianza >= 60 ? 'bg-info' : 'bg-warning';
         badge.className = `position-absolute top-0 end-0 mt-2 me-3 badge ${colorConfianza} text-white shadow-sm`;
         badge.innerHTML = `<i class="bi bi-check-circle"></i> ${sug.confianza}% confianza`;
       }
 
-      // Construir mensaje de confirmación
-      let mensaje = `🤖 Sugerencia de IA:\n\n`;
-      mensaje += `📁 Área: ${sug.area}\n`;
-      mensaje += `📋 Categoría: ${sug.categoria}\n`;
-      mensaje += `📊 Confianza: ${sug.confianza}%\n`;
-      
-      // Mostrar alternativas si existen
+      if (sug.infoAdicional && hint) {
+        hint.innerHTML = `<span class="text-info"><i class="bi bi-info-circle me-1"></i>${sug.infoAdicional}</span>`;
+      } else if (hint) {
+        hint.innerHTML = '';
+      }
+
+      // Limpiar modal previo
+      const existingModal = document.getElementById('modalIASugerencia');
+      if (existingModal) existingModal.remove();
+
+      // Construir alternativas
+      let htmlAlternativas = '';
       if (sug.sugerencias && sug.sugerencias.length > 1) {
-        mensaje += `\n── Otras opciones ──\n`;
-        sug.sugerencias.slice(1, 3).forEach((s, i) => {
-          mensaje += `${i + 2}. ${s.categoria} (${s.area})\n`;
-        });
-      }
-      
-      mensaje += `\n¿Aplicar esta sugerencia?`;
-
-      if (confirm(mensaje)) {
-        // Aplicar área
-        const areaEl = $('nArea');
-        if (areaEl) {
-          areaEl.value = sug.area;
-          onAreaChange('nArea', 'nCat');
-        }
-
-        // Aplicar categoría después de que carguen las opciones
-        setTimeout(() => {
-          const catEl = $('nCat');
-          if (catEl && sug.categoria) {
-            const exists = Array.from(catEl.options).some(o => o.value === sug.categoria);
-            if (exists) {
-              catEl.value = sug.categoria;
-              // Disparar evento change para actualizar prioridad si aplica
-              catEl.dispatchEvent(new Event('change'));
-            }
-          }
-          updateAutoTitle();
-        }, 500);
-
-        mostrarToast(`✅ Aplicado: ${sug.area} → ${sug.categoria}`, 'success');
-        
-        if (hint) {
-          hint.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>Sugerencia aplicada</span>`;
-        }
-      } else {
-        if (hint) {
-          hint.textContent = 'Sugerencia descartada. Selecciona manualmente.';
-        }
+        htmlAlternativas = sug.sugerencias.slice(1).map(s => `
+          <div class="d-flex align-items-start justify-content-between p-2 border rounded mb-1"
+               style="cursor:pointer;transition:background 0.15s;"
+               onmouseover="this.style.background='#f8fafc'"
+               onmouseout="this.style.background=''"
+               onclick="App._aplicarSugerenciaIA('${escapeHtml(s.area)}', '${escapeHtml(s.categoria)}')">
+            <div>
+              <span class="badge bg-secondary me-1">${s.confianza}%</span>
+              <span class="badge bg-primary me-1">${escapeHtml(s.area)}</span>
+              <strong>${escapeHtml(s.categoria)}</strong>
+              ${s.razon ? `<div class="text-muted small mt-1"><i class="bi bi-lightbulb me-1"></i>${escapeHtml(s.razon)}</div>` : ''}
+            </div>
+            <i class="bi bi-arrow-right-circle text-primary ms-2 mt-1"></i>
+          </div>
+        `).join('');
       }
 
-      // Ocultar badge después de un tiempo
-      setTimeout(() => {
-        if (badge) badge.classList.add('d-none');
-      }, 3000);
+      // Indicador de contexto usado
+      const contextoHtml = area
+        ? `<div class="alert alert-primary py-1 px-2 small mb-3">
+             <i class="bi bi-funnel me-1"></i>
+             Análisis filtrado por área: <strong>${escapeHtml(area)}</strong>
+           </div>`
+        : `<div class="alert alert-secondary py-1 px-2 small mb-3">
+             <i class="bi bi-grid me-1"></i>
+             Análisis sobre catálogo completo (no hay área seleccionada)
+           </div>`;
+
+      document.body.insertAdjacentHTML('beforeend', `
+        <div class="modal fade" id="modalIASugerencia" tabindex="-1">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;">
+                <h5 class="modal-title">
+                  <i class="bi bi-cpu me-2"></i>Sugerencia de IA
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+
+                ${contextoHtml}
+
+                ${sug.resumen ? `
+                  <p class="text-muted small mb-3">
+                    <i class="bi bi-info-circle me-1"></i>${escapeHtml(sug.resumen)}
+                  </p>` : ''}
+
+                <!-- Mejor sugerencia -->
+                <div class="p-3 border rounded mb-3" 
+                     style="background:#f0fdf4;border-color:#86efac!important;cursor:pointer;"
+                     onclick="App._aplicarSugerenciaIA('${escapeHtml(sug.area)}', '${escapeHtml(sug.categoria)}')">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong class="text-success">
+                      <i class="bi bi-patch-check-fill me-1"></i>Mejor sugerencia
+                    </strong>
+                    <span class="badge bg-success">${sug.confianza}% confianza</span>
+                  </div>
+                  <div>
+                    <span class="badge bg-primary me-1">${escapeHtml(sug.area)}</span>
+                    <span class="fw-bold fs-6">${escapeHtml(sug.categoria)}</span>
+                  </div>
+                  ${sug.razon ? `
+                    <p class="text-muted small mt-2 mb-0">
+                      <i class="bi bi-lightbulb me-1"></i>${escapeHtml(sug.razon)}
+                    </p>` : ''}
+                </div>
+
+                <!-- Otras opciones -->
+                ${htmlAlternativas ? `
+                  <div class="mb-2">
+                    <small class="text-muted fw-bold d-block mb-1">
+                      <i class="bi bi-list-ul me-1"></i>OTRAS OPCIONES:
+                    </small>
+                    ${htmlAlternativas}
+                  </div>` : ''}
+
+                <!-- Info adicional si descripción fue vaga -->
+                ${sug.infoAdicional ? `
+                  <div class="alert alert-warning py-2 small mb-0 mt-2">
+                    <i class="bi bi-question-circle me-1"></i>
+                    <strong>Para mejorar la sugerencia:</strong> ${escapeHtml(sug.infoAdicional)}
+                  </div>` : ''}
+
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-success fw-semibold" 
+                        onclick="App._aplicarSugerenciaIA('${escapeHtml(sug.area)}', '${escapeHtml(sug.categoria)}')">
+                  <i class="bi bi-check-lg me-1"></i>Aplicar sugerencia
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `);
+
+      const modal = new bootstrap.Modal(document.getElementById('modalIASugerencia'));
+      modal.show();
+
+      document.getElementById('modalIASugerencia').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+      });
+
+      setTimeout(() => { if (badge) badge.classList.add('d-none'); }, 5000);
     })
     .withFailureHandler(err => {
-      console.error('Error IA:', err);
-      
-      if (badge) {
-        badge.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Error';
+      if (btnIA) { btnIA.disabled = false; btnIA.innerHTML = '<i class="bi bi-cpu me-1"></i>Sugerir con IA'; }
+      if (badge) { 
+        badge.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Error'; 
         badge.className = 'position-absolute top-0 end-0 mt-2 me-3 badge bg-danger text-white shadow-sm';
-        setTimeout(() => badge.classList.add('d-none'), 2000);
+        setTimeout(() => badge.classList.add('d-none'), 2000); 
       }
-      if (btnIA) {
-        btnIA.disabled = false;
-        btnIA.innerHTML = '<i class="bi bi-cpu me-1"></i>Sugerir con IA';
-      }
-      if (hint) {
-        hint.textContent = 'Error al analizar. Intenta de nuevo.';
-      }
+      if (hint) { hint.textContent = 'Error al analizar. Intenta de nuevo.'; }
+      console.error('Error IA:', err);
     })
-    .sugerirCategoriaIA(desc, ubicacion);
+    .sugerirCategoriaIA(desc, ubicacion, area); // ← pasa el área como tercer parámetro
+}
+
+function _aplicarSugerenciaIA(area, categoria) {
+  // Cerrar modal
+  const modalEl = document.getElementById('modalIASugerencia');
+  if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
+
+  const areaEl = $('nArea');
+  if (areaEl && area) {
+    areaEl.value = area;
+    // Llamar onAreaChange pero interceptar su callback de éxito
+    _aplicarCategoriaConEspera(area, categoria);
+  }
+}
+
+function _aplicarCategoriaConEspera(area, categoria) {
+  // 1. Disparar carga de categorías del área seleccionada
+  const ubicacion = $('nUbicacion')?.value?.trim() || '';
+  
+  showLoadingCategorias();
+
+  google.script.run
+    .withSuccessHandler(function(lista) {
+      hideLoadingCategorias();
+
+      if (!lista || lista.length === 0) {
+        mostrarToast('No se encontraron categorías para esta área', 'warning');
+        return;
+      }
+
+      // 2. Guardar categorías originales y renderizar
+      categoriasOriginales = lista.map(c => ({
+        ...c,
+        niveles: c.nombre.split('-').map(n => n.trim())
+      }));
+      renderCategorias(categoriasOriginales);
+
+      const catEl = $('nCat');
+      if (catEl) catEl.disabled = false;
+
+      // 3. Aplicar la categoría sugerida
+      if (catEl && categoria) {
+        const existe = Array.from(catEl.options).some(o => o.value === categoria);
+        if (existe) {
+          catEl.value = categoria;
+          catEl.dispatchEvent(new Event('change'));
+          mostrarToast(`✅ Aplicado: ${area} → ${categoria}`, 'success');
+        } else {
+          mostrarToast(`⚠️ Categoría "${categoria}" no disponible en esta área`, 'warning');
+        }
+      }
+
+      // 4. Actualizar título DESPUÉS de que todo esté listo
+      setTimeout(() => updateAutoTitle(), 100);
+    })
+    .withFailureHandler(function(err) {
+      hideLoadingCategorias();
+      mostrarToast('Error cargando categorías: ' + err.message, 'error');
+    })
+    .fetchCategorias(area, ubicacion.toLowerCase());
 }
 
 
@@ -12418,7 +12742,6 @@ function cargarUbicacionesAdmin(callback) {
     .getTodasLasUbicaciones();
 }
 
-
 /**
  * Poblar las opciones del dropdown con checkboxes
  * @param {string[]} ubicaciones - Lista de ubicaciones disponibles
@@ -12606,139 +12929,119 @@ function adminOpenNewUser() {
   ADMIN_EDIT_EMAIL = null;
   document.getElementById('adminUserTitle').textContent = 'Nuevo Usuario';
 
-  // Limpiar campos
   document.getElementById('admEmail').value = '';
   document.getElementById('admEmail').disabled = false;
   document.getElementById('admNombre').value = '';
   document.getElementById('admPuesto').value = '';
 
-  // Llenar select de Área
   fillSelect('admArea', [''].concat(BOOT.areas || []));
-
-  // Llenar multi-select de Ubicaciones (cargando del backend)
-  cargarUbicacionesAdmin(function(lista) {
-    poblarUbicDropdown(lista, []); // Ninguna pre-seleccionada
-  });
-
-  // Resets
   document.getElementById('admRol').value = 'usuario';
   document.getElementById('admEstatus').value = 'Activo';
 
-  // Cerrar dropdown si estaba abierto
-  var dropdown = document.getElementById('admUbicDropdown');
-  var trigger = document.getElementById('admUbicTrigger');
-  if (dropdown) dropdown.classList.remove('open');
-  if (trigger) trigger.classList.remove('open');
+  cargarUbicacionesAdmin(function(lista) {
+    poblarUbicDropdown(lista, []);
+  });
 
-  var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('adminUserModal'));
-  modal.show();
+  // 🆕 Ciudad física: ocultar (usuario por defecto no es agente) y limpiar
+  toggleUbicFisicaVisibility('usuario');
+  llenarSelectUbicFisica('');
+
+  var dropdown = document.getElementById('admUbicDropdown');
+  var trigger  = document.getElementById('admUbicTrigger');
+  if (dropdown) dropdown.classList.remove('open');
+  if (trigger)  trigger.classList.remove('open');
+
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('adminUserModal')).show();
 }
 
-
-// -------------------------------------------------------
-// 3D. REEMPLAZAR adminEditUser() — Líneas ~21328-21353
-// -------------------------------------------------------
-// BUSCAR: function adminEditUser(email, nombre, rol, area, ubicacion, puesto, estatus) {
-// REEMPLAZAR TODA LA FUNCIÓN POR:
-
-function adminEditUser(email, nombre, rol, area, ubicacion, puesto, estatus) {
+function adminEditUser(email, nombre, rol, area, ubicacion, puesto, estatus, ubicacionFisica) {
   ADMIN_EDIT_EMAIL = email;
   document.getElementById('adminUserTitle').textContent = 'Editar Usuario';
-
   document.getElementById('admEmail').value = email;
   document.getElementById('admEmail').disabled = true;
   document.getElementById('admNombre').value = nombre || '';
   document.getElementById('admPuesto').value = puesto || '';
 
-  // Poblar select de Área
   fillSelect('admArea', [''].concat(BOOT.areas || []));
   document.getElementById('admArea').value = area || '';
+  document.getElementById('admRol').value = rol;
+  document.getElementById('admEstatus').value = estatus || 'Activo';
 
-  // Parsear ubicaciones actuales (separadas por coma)
-  var ubicacionesActuales = (ubicacion || '')
-    .split(',')
-    .map(function(u) { return u.trim(); })
-    .filter(function(u) { return u; });
+  // 🆕 Ciudad física: mostrar/ocultar según rol y cargar valor actual
+  toggleUbicFisicaVisibility(rol);
+  llenarSelectUbicFisica(ubicacionFisica || '');
 
-  // Llenar multi-select de Ubicaciones con las actuales pre-seleccionadas
+  var ubicacionesActuales = (ubicacion || '').split(',').map(function(u) { return u.trim(); }).filter(Boolean);
   cargarUbicacionesAdmin(function(lista) {
-    // Si el usuario tiene ubicaciones que no están en el catálogo, agregarlas
-    var listaCompleta = lista.slice(); // copia
+    var listaCompleta = lista.slice();
     ubicacionesActuales.forEach(function(ua) {
-      var existe = listaCompleta.some(function(l) {
-        return l.trim().toLowerCase() === ua.toLowerCase();
-      });
-      if (!existe && ua) {
+      if (!listaCompleta.some(function(l) { return l.trim().toLowerCase() === ua.toLowerCase(); })) {
         listaCompleta.push(ua);
       }
     });
     listaCompleta.sort(function(a, b) { return a.localeCompare(b, 'es'); });
-
     poblarUbicDropdown(listaCompleta, ubicacionesActuales);
   });
 
-  // Asignar otros valores
-  document.getElementById('admRol').value = rol;
-  document.getElementById('admEstatus').value = estatus || 'Activo';
-
-  // Cerrar dropdown si estaba abierto
   var dropdown = document.getElementById('admUbicDropdown');
-  var trigger = document.getElementById('admUbicTrigger');
+  var trigger  = document.getElementById('admUbicTrigger');
   if (dropdown) dropdown.classList.remove('open');
-  if (trigger) trigger.classList.remove('open');
+  if (trigger)  trigger.classList.remove('open');
 
-  var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('adminUserModal'));
-  modal.show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('adminUserModal')).show();
 }
 
 
+
+
+
+// En adminSaveUser() — agregar lectura del campo nuevo
 function adminSaveUser() {
-    const p = {
-        email: document.getElementById('admEmail').value.trim().toLowerCase(),
-        nombre: document.getElementById('admNombre').value.trim(),
-        rol: document.getElementById('admRol').value,
-        area: document.getElementById('admArea').value,
-        ubicacion: document.getElementById('admUbicacion').value,
-        puesto: document.getElementById('admPuesto').value,
-        estatus: document.getElementById('admEstatus').value
-    };
+  const p = {
+    email:           document.getElementById('admEmail').value.trim().toLowerCase(),
+    nombre:          document.getElementById('admNombre').value.trim(),
+    rol:             document.getElementById('admRol').value,
+    area:            document.getElementById('admArea').value,
+    ubicacion:       document.getElementById('admUbicacion').value,
+    ubicacionFisica: document.getElementById('admUbicFisica')?.value.trim() || '',
+    puesto:          document.getElementById('admPuesto').value,
+    estatus:         document.getElementById('admEstatus').value
+  };
 
-    if (!p.email) {
-        alert('El email es obligatorio');
-        return;
-    }
+  if (!p.email) { mostrarToast('El email es obligatorio', 'danger'); return; }
 
-    const modal = bootstrap.Modal.getInstance(document.getElementById('adminUserModal'));
-    modal.hide();
-    
-    showLoading(true, ADMIN_EDIT_EMAIL ? 'Actualizando...' : 'Creando y enviando credenciales...');
+  const modal = bootstrap.Modal.getInstance(document.getElementById('adminUserModal'));
+  modal.hide();
+  showLoading(true, ADMIN_EDIT_EMAIL ? 'Actualizando...' : 'Creando y enviando credenciales...');
 
-    const onSuccess = () => {
-        showLoading(false);
-        App.adminLoadUsers(); // Recargar tabla
-        // Mostrar mensaje de éxito
-        if (!ADMIN_EDIT_EMAIL) {
-            alert(`Usuario creado exitosamente.\nSe han enviado las credenciales a ${p.email}`);
-        }
-    };
+  const onSuccess = () => {
+    showLoading(false);
+    App.adminLoadUsers();
+    if (!ADMIN_EDIT_EMAIL) mostrarToast(`Usuario creado. Credenciales enviadas a ${p.email}`, 'success');
+  };
+  const onFailure = (e) => {
+    showLoading(false);
+    mostrarToast('Error: ' + (e.message || e), 'danger');
+    modal.show();
+  };
 
-    const onFailure = (e) => {
-        showLoading(false);
-        alert('Error: ' + (e.message || e));
-        modal.show(); // Volver a mostrar modal si falla
-    };
+  if (ADMIN_EDIT_EMAIL) {
+    google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure)
+      .updateUser(p.email, p.nombre, p.rol, p.area, p.ubicacion, p.puesto, p.estatus, p.ubicacionFisica);
+  } else {
+    google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure)
+      .createUser(p.email, p.nombre, p.rol, p.area, p.ubicacion, p.puesto, p.estatus, p.ubicacionFisica);
+  }
+}
 
-    if (ADMIN_EDIT_EMAIL) {
-        google.script.run
-            .withSuccessHandler(onSuccess)
-            .withFailureHandler(onFailure)
-            .updateUser(p.email, p.nombre, p.rol, p.area, p.ubicacion, p.puesto, p.estatus);
-    } else {
-        google.script.run
-            .withSuccessHandler(onSuccess)
-            .withFailureHandler(onFailure)
-            .createUser(p.email, p.nombre, p.rol, p.area, p.ubicacion, p.puesto, p.estatus);
-    }
+
+
+// Mostrar campo UbicacionFisica solo para agentes
+function toggleUbicFisicaVisibility(rol) {
+  const wrapper = document.getElementById('admUbicFisicaWrapper');
+  if (!wrapper) return;
+  const esAgente = (rol || '').toLowerCase().includes('agente');
+  wrapper.style.display = esAgente ? '' : 'none';
 }
 
 
@@ -15794,6 +16097,46 @@ function markAllNotifsRead() {
 }
 
 
+// Variable global — persiste en localStorage
+let SONIDO_NOTIF_ACTIVO = (function() {
+  try { return localStorage.getItem('helpdesk_sonido') !== 'off'; } 
+  catch(e) { return true; }
+})();
+
+function playNotifSound() {
+  if (!SONIDO_NOTIF_ACTIVO) return; // ← respetar preferencia
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+    gainNode.gain.value = 0.1;
+    oscillator.start();
+    setTimeout(() => { oscillator.stop(); audioContext.close(); }, 100);
+  } catch (e) {}
+}
+
+function toggleSonidoNotif() {
+  SONIDO_NOTIF_ACTIVO = !SONIDO_NOTIF_ACTIVO;
+  try { localStorage.setItem('helpdesk_sonido', SONIDO_NOTIF_ACTIVO ? 'on' : 'off'); } 
+  catch(e) {}
+  actualizarIconoSonido();
+  mostrarToast(SONIDO_NOTIF_ACTIVO ? '🔔 Sonido de notificaciones activado' : '🔕 Sonido de notificaciones silenciado', 'info');
+}
+
+function actualizarIconoSonido() {
+  const btn = document.getElementById('btnToggleSonido');
+  if (!btn) return;
+  const icon = btn.querySelector('i');
+  if (!icon) return;
+  icon.className = SONIDO_NOTIF_ACTIVO ? 'bi bi-bell-fill' : 'bi bi-bell-slash-fill';
+  btn.title = SONIDO_NOTIF_ACTIVO ? 'Silenciar notificaciones' : 'Activar sonido de notificaciones';
+}
+
+
 function startNotifPolling() {
   if (!USER?.email) return;
   
@@ -15812,15 +16155,21 @@ function startNotifPolling() {
         const currentIds = new Set(NOTIFICATIONS.map(n => n.id));
         const newNotifs  = list.filter(n => !currentIds.has(n.id) && !n.leido);
         
-        // Merge: agregar las nuevas, actualizar estado leído de las existentes
-        list.forEach(incoming => {
-          const existing = NOTIFICATIONS.find(n => n.id === incoming.id);
-          if (existing) {
-            existing.leido = incoming.leido; // sincronizar estado real
-          } else {
-            NOTIFICATIONS.unshift(incoming);
-          }
-        });
+        // REEMPLAZA el bloque del merge en startNotifPolling:
+list.forEach(incoming => {
+  const existing = NOTIFICATIONS.find(n => n.id === incoming.id);
+  if (existing) {
+    // Solo actualizar leido si el backend dice TRUE
+    // Si ya está marcado como leído localmente, NO revertir
+    if (incoming.leido === true) {
+      existing.leido = true;
+    }
+    // Si localmente ya está leído, no revertir aunque el backend diga false
+    // (puede haber lag entre marcar y persistir)
+  } else {
+    NOTIFICATIONS.unshift(incoming);
+  }
+});
         
         // Recortar a 50
         NOTIFICATIONS = NOTIFICATIONS.slice(0, 50);
@@ -18679,59 +19028,77 @@ function renderGerenteRows(items, total) {
 function reloadGerenteTickets(page, silent) {
   if (page === undefined) page = 1;
   if (silent === undefined) silent = false;
-  
+
   var role = getGerenciaRoleForRequest();
   PAGE[role] = page;
   var filter = filtersByRole(role);
   filter.view = 'gerencia';
   filter.includeArea = true;
-  
+
   if (role === 'superadmin' && !filter.area) filter.area = 'todas';
+
+  const tbody = document.getElementById('rows_g');
+
+  // ── CACHE-FIRST: mostrar datos anteriores al instante ──────────────────
+  const cacheActual = TICKETS_GERENTE_CACHE || [];
+
+  if (tbody) {
+    if (cacheActual.length > 0) {
+      // Hay datos previos → mostrarlos YA y atenuar suavemente
+      renderTickets('gerente', cacheActual, cacheActual.length);
+      tbody.style.transition = 'opacity 0.15s ease';
+      tbody.style.opacity = '0.5';
+      tbody.style.pointerEvents = 'none';
+    } else {
+      // Sin caché → skeleton animado (9 columnas en gerente)
+      renderSkeletonRows('rows_g', 9, 6);
+      tbody.style.opacity = '1';
+      tbody.style.pointerEvents = 'none';
+    }
+  }
 
   if (!silent) {
     actualizarColumnasTabla('gerente');
-    showLoading(true, 'Cargando gerencia...');
   }
 
   google.script.run
     .withSuccessHandler(function(res) {
-      if (!silent) showLoading(false);
-      res = res || { items: [], total: 0, counts: {} };
+      // Restaurar tabla
+      if (tbody) {
+        tbody.style.transition = 'opacity 0.2s ease';
+        tbody.style.opacity = '1';
+        tbody.style.pointerEvents = 'auto';
+      }
 
+      res = res || { items: [], total: 0, counts: {} };
       var ticketsOrdenados = ordenarTicketsPorReglaNegocio(res.items || []);
 
-      // Cachear
+      // Actualizar caché
       TICKETS_CACHE.gerente = ticketsOrdenados;
       TICKETS_GERENTE_CACHE = ticketsOrdenados;
 
-      // ═══ CAMBIO CLAVE ═══
-      // Ya NO hacemos aplicarFiltroEspecial() aquí.
-      // El backend ya filtró por filter.special (que ahora sí se envía correctamente).
-      // Solo renderizamos lo que vino del servidor.
       renderTickets('gerente', ticketsOrdenados, res.total);
 
-      // REFRESCO AUTOMÁTICO PARA GERENTES
       if (typeof loadVisitasGerente === 'function') loadVisitasGerente();
       if (typeof cargarEscalamientosPendientes === 'function') cargarEscalamientosPendientes();
 
-      // Stats: usamos res.counts del backend (totales REALES, no de página)
       actualizarEstadisticasGerente(ticketsOrdenados, res.counts);
-      
+
       var gerenteCountEl = document.getElementById('gerenteCount');
       if (gerenteCountEl) gerenteCountEl.textContent = (res.total || 0) + ' tickets';
 
-      // Si hay filtro especial activo, mostrar el banner visual
+      // Banner de filtro especial activo
       if (FILTRO_ESPECIAL.gerente) {
         var textos = {
-          vencidos: '🔴 Mostrando: Tickets Vencidos',
-          activos: '🔵 Mostrando: Tickets Activos',
-          resueltos: '🟢 Mostrando: Tickets Resueltos',
+          vencidos:   '🔴 Mostrando: Tickets Vencidos',
+          activos:    '🔵 Mostrando: Tickets Activos',
+          resueltos:  '🟢 Mostrando: Tickets Resueltos',
           sinAsignar: '🟡 Mostrando: Sin Asignar',
-          enProceso: '🟣 Mostrando: En Proceso',
-          escalados: '🔶 Mostrando: Escalados'
+          enProceso:  '🟣 Mostrando: En Proceso',
+          escalados:  '🔶 Mostrando: Escalados'
         };
         var alertEl = document.getElementById('filtroActivoGerente');
-        var textEl = document.getElementById('filtroActivoTexto');
+        var textEl  = document.getElementById('filtroActivoTexto');
         if (alertEl && textEl) {
           textEl.textContent = textos[FILTRO_ESPECIAL.gerente] || 'Filtro activo';
           alertEl.classList.remove('d-none');
@@ -18739,9 +19106,12 @@ function reloadGerenteTickets(page, silent) {
       }
     })
     .withFailureHandler(function(e) {
-      if (!silent) showLoading(false);
+      if (tbody) {
+        tbody.style.opacity = '1';
+        tbody.style.pointerEvents = 'auto';
+      }
       console.error('Error reloadGerenteTickets:', e);
-      if (!silent) alert('Error: ' + e.message);
+      if (!silent) mostrarToast('Error: ' + e.message, 'danger');
     })
     .listTickets(filter, USER.email);
 }
@@ -18859,47 +19229,39 @@ function quitarFiltroEspecialGerente() {
 // ============================================================
 
 let AUTO_REFRESH_INTERVAL = null;
-const AUTO_REFRESH_MS = 300000; // 5 minutos (300,000 milisegundos)
+
+const AUTO_REFRESH_MS = 90000; // 90 segundos base
 
 function iniciarAutoRefresh() {
-  // Limpiar intervalo anterior si existe para evitar duplicados
-  if (AUTO_REFRESH_INTERVAL) {
-    clearInterval(AUTO_REFRESH_INTERVAL);
-  }
-  
+  if (AUTO_REFRESH_INTERVAL) clearInterval(AUTO_REFRESH_INTERVAL);
+
+  // Jitter de ±15 seg para desincronizar usuarios concurrentes
+  const jitter = Math.floor(Math.random() * 30000) - 15000;
+  const intervalo = AUTO_REFRESH_MS + jitter; // entre 75 y 105 seg
+
   AUTO_REFRESH_INTERVAL = setInterval(() => {
-    // Solo refrescar si la pestaña está visible (ahorra memoria y batería)
-    if (document.visibilityState === 'visible') {
-      console.log('🔄 Ejecutando auto-refresh silencioso (10 min)...');
-      
-      // Detectar qué módulo está activo
-      const moduloActivo = document.querySelector('.module:not(.d-none)');
-      if (!moduloActivo) return;
-      
-      const id = moduloActivo.id;
-      
-      // Ejecutar recarga pasando 'true' como último parámetro (silent mode)
-      if (id === 'modUsuario') {
-        reloadTicketsRole('usuario', PAGE['usuario'] || 1, true);
-      } 
-      else if (id === 'modSistemas') {
-        reloadTicketsRole('agente_sistemas', PAGE['agente_sistemas'] || 1, true);
-      } 
-      else if (id === 'modManto') {
-        reloadTicketsRole('agente_mantenimiento', PAGE['agente_mantenimiento'] || 1, true);
-      } 
-      else if (id === 'modGerente') {
-        // Ahora reloadGerenteTickets aceptará el parámetro silent
-        reloadGerenteTickets(PAGE[getGerenciaRoleForRequest()] || 1, true);
-        cargarEscalamientosPendientes();
-      } 
-      else if (id === 'modDash') {
-        loadDashboard(0, true); // El dashboard ya soportaba modo silencioso
-      }
+    if (document.visibilityState !== 'visible') return;
+
+    const moduloActivo = document.querySelector(
+      '#modUsuario:not(.d-none), #modSistemas:not(.d-none), #modManto:not(.d-none), #modGerente:not(.d-none), #modDash:not(.d-none)'
+    );
+    if (!moduloActivo) return;
+
+    const id = moduloActivo.id;
+    console.log(`🔄 Auto-refresh silencioso [${id}]`);
+
+    if (id === 'modUsuario')  reloadTicketsRole('usuario', PAGE['usuario'] || 1, true);
+    else if (id === 'modSistemas') reloadTicketsRole('agente_sistemas', PAGE['agente_sistemas'] || 1, true);
+    else if (id === 'modManto')    reloadTicketsRole('agente_mantenimiento', PAGE['agente_mantenimiento'] || 1, true);
+    else if (id === 'modGerente') {
+      reloadGerenteTickets(PAGE[getGerenciaRoleForRequest()] || 1, true);
+      cargarEscalamientosPendientes();
     }
-  }, AUTO_REFRESH_MS);
-  
-  console.log(`✅ Auto-refresh iniciado: Intervalo de ${AUTO_REFRESH_MS / 60000} minutos.`);
+    else if (id === 'modDash') loadDashboard(0, true);
+
+  }, intervalo);
+
+  console.log(`✅ Auto-refresh: ${intervalo / 1000}s`);
 }
 
 
@@ -19032,8 +19394,29 @@ function toggleDetailExpand() {
   }
 }
 
+function llenarSelectUbicFisica(valorActual) {
+  const sel = document.getElementById('admUbicFisica');
+  if (!sel) return;
+  sel.innerHTML = `
+    <option value="">Selecciona ciudad...</option>
+    <option value="Guadalajara" ${valorActual === 'Guadalajara' ? 'selected' : ''}>Guadalajara</option>
+    <option value="Tijuana" ${valorActual === 'Tijuana' ? 'selected' : ''}>Tijuana</option>
+  `;
+}
+
 //Init
 document.addEventListener('DOMContentLoaded', () => {
+
+
+
+  // Listener rol → mostrar/ocultar ciudad física
+  const admRolEl = document.getElementById('admRol');
+  if (admRolEl) {
+    admRolEl.addEventListener('change', function() {
+      toggleUbicFisicaVisibility(this.value);
+      llenarSelectUbicFisica('');
+    });
+  }
 
     // Reset wizard
   updateNewTicketStep(1);
@@ -19154,8 +19537,7 @@ document.addEventListener('DOMContentLoaded', function() {
     renderAdminUsersTable(filtered);
   }
 
-  // 3. RENDERIZADO VISUAL
- // 3. RENDERIZADO VISUAL (Actualizada)
+
 function renderAdminUsersTable(users) {
   const tb = document.getElementById('adminUsersRows');
   const countEl = document.getElementById('adminUserCount');
@@ -19178,6 +19560,7 @@ function renderAdminUsersTable(users) {
     const safeUbic = escapeHtml(u.ubicacion || '');
     const safePuesto = escapeHtml(u.puesto || ''); // Nuevo
     const safeEstatus = escapeHtml(u.estatus || 'Activo'); // Nuevo
+    const safeUbicFisica = escapeHtml(u.ubicacionFisica || '');
 
     // Generar avatar
     const iniciales = safeNombre.substring(0, 2).toUpperCase();
@@ -19228,7 +19611,7 @@ function renderAdminUsersTable(users) {
       <td class="text-end pe-4">
         <div class="btn-group">
           <button class="btn btn-sm btn-light border" 
-            onclick="App.adminEditUser('${safeEmail}', '${safeNombre}', '${safeRol}', '${safeArea}', '${safeUbic}', '${safePuesto}', '${safeEstatus}')" 
+onclick="App.adminEditUser('${safeEmail}', '${safeNombre}', '${safeRol}', '${safeArea}', '${safeUbic}', '${safePuesto}', '${safeEstatus}', '${escapeHtml(u.ubicacionFisica || '')}')"
             title="Editar">
             <i class="bi bi-pencil-fill text-secondary"></i>
           </button>
@@ -21750,6 +22133,34 @@ function eliminarFestivo(rowIndex, nombre) {
 }
 
 
+// FUNCIÓN GLOBAL REUTILIZABLE — reemplaza todos los confirm/alert
+function showConfirmModal(titulo, mensaje, onConfirm, tipo = 'warning') {
+  const id = 'globalConfirmModal';
+  document.getElementById(id)?.remove();
+  const iconos = { warning: 'bi-exclamation-triangle', danger: 'bi-trash', info: 'bi-info-circle' };
+  const colores = { warning: 'bg-warning text-dark', danger: 'bg-danger text-white', info: 'bg-info text-white' };
+  document.body.insertAdjacentHTML('beforeend', `
+    <div class="modal fade" id="${id}" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header ${colores[tipo]}">
+            <h5 class="modal-title"><i class="bi ${iconos[tipo]} me-2"></i>${titulo}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">${mensaje}</div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button class="btn btn-${tipo === 'danger' ? 'danger' : 'primary'}" id="${id}_confirm">Confirmar</button>
+          </div>
+        </div>
+      </div>
+    </div>`);
+  const modal = new bootstrap.Modal(document.getElementById(id));
+  document.getElementById(`${id}_confirm`).onclick = () => { modal.hide(); onConfirm(); };
+  modal.show();
+}
+
+
 // ============================================================
 // NUEVA FUNCIÓN: Habilitar redimensionamiento de columnas
 // ============================================================
@@ -21803,6 +22214,264 @@ function enableColumnResizing(tableId) {
   });
 }
 
+
+// ============================================================================
+// ASISTENTE IA — FLUJO 3 PASOS
+// ============================================================================
+
+let _ASISTENTE_STATE_ = {
+  paso: 1,
+  descripcionOriginal: '',
+  descripcionFinal: '',
+  area: null,
+  ubicacion: null,
+  categoria: null,
+  descripcionMejorada: '',
+  resultado: null
+};
+
+function abrirAsistenteIA() {
+  _reiniciarEstadoAsistente_();
+  const m = document.getElementById('modalAsistenteIA');
+  if (m) new bootstrap.Modal(m).show();
+}
+
+function _reiniciarEstadoAsistente_() {
+  _ASISTENTE_STATE_ = { paso: 1, descripcionOriginal: '', descripcionFinal: '', area: null, ubicacion: null, categoria: null, descripcionMejorada: '', resultado: null };
+  _mostrarPasoAsistente_(1);
+  const el = document.getElementById('asistenteDescInput');
+  if (el) el.value = '';
+}
+
+function reiniciarAsistente() { _reiniciarEstadoAsistente_(); }
+
+function _mostrarPasoAsistente_(paso) {
+  [1, 2, 3, 'Analizando', 'Pregunta'].forEach(function(p) {
+    const el = document.getElementById('asistentePaso' + p);
+    if (el) el.classList.toggle('d-none', String(p) !== String(paso));
+  });
+}
+
+function usarPromptRapido(texto) {
+  const el = document.getElementById('asistenteDescInput');
+  if (el) { el.value = texto; el.focus(); }
+}
+
+// ── PASO 1: Usuario describe → IA detecta área ───────────────────────────────
+function analizarConAsistente() {
+  const desc = (document.getElementById('asistenteDescInput')?.value || '').trim();
+  if (!desc || desc.length < 5) {
+    mostrarToast('Describe tu problema con más detalle', 'warning');
+    return;
+  }
+  _ASISTENTE_STATE_.descripcionOriginal = desc;
+  _ASISTENTE_STATE_.descripcionFinal    = desc;
+  _mostrarPasoAsistente_('Analizando');
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res?.ok) {
+        _mostrarPasoAsistente_(1);
+        mostrarToast(res?.error || 'Error al analizar', 'danger');
+        return;
+      }
+      // Si la descripción fue vaga, preguntar antes de continuar
+      if (res.preguntaSeguimiento) {
+        document.getElementById('asistentePreguntaTexto').textContent = res.preguntaSeguimiento;
+        document.getElementById('asistentePreguntaResp').value = '';
+        // Guardar área provisionalmente
+        _ASISTENTE_STATE_.area = res.area;
+        _mostrarPasoAsistente_('Pregunta');
+        return;
+      }
+      _ASISTENTE_STATE_.area = res.area;
+      _mostrarPaso2_();
+    })
+    .withFailureHandler(function(err) {
+      _mostrarPasoAsistente_(1);
+      mostrarToast('Error: ' + err.message, 'danger');
+    })
+    .asistenteDetectarArea(desc);
+}
+
+function responderPreguntaAsistente() {
+  const resp = (document.getElementById('asistentePreguntaResp')?.value || '').trim();
+  if (!resp) { mostrarToast('Escribe tu respuesta', 'warning'); return; }
+  _ASISTENTE_STATE_.descripcionFinal = _ASISTENTE_STATE_.descripcionOriginal + '. ' + resp;
+  _mostrarPaso2_();
+}
+
+// ── PASO 2: Mostrar área detectada + selector de ubicación ───────────────────
+function _mostrarPaso2_() {
+  // Mostrar área detectada
+  const areaEl = document.getElementById('asistenteAreaConfirm');
+  if (areaEl) {
+    areaEl.textContent = _ASISTENTE_STATE_.area;
+    areaEl.className = 'badge ' +
+      (_ASISTENTE_STATE_.area === 'Sistemas' ? 'bg-primary' : 'bg-success') +
+      ' fs-6 px-3 py-2';
+  }
+
+  // Botones para cambiar área
+  document.querySelectorAll('.btn-area-asistente').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.area === _ASISTENTE_STATE_.area);
+  });
+
+  // Obtener ubicaciones del usuario
+  const ubicacionesUsuario = (BOOT?.userInfo?.ubicacion || '')
+    .split(',').map(u => u.trim()).filter(Boolean);
+
+  // Si es SuperAdmin, mostrar todas las ubicaciones del BOOT
+  const todasUbicaciones = BOOT?.ubicaciones || ubicacionesUsuario;
+  const listaUbics = ubicacionesUsuario.length > 0 ? ubicacionesUsuario : todasUbicaciones;
+
+  const contenedor = document.getElementById('asistenteUbicBtns2');
+  if (contenedor) {
+    if (listaUbics.length === 1) {
+      // Auto-seleccionar si solo hay una
+      _ASISTENTE_STATE_.ubicacion = listaUbics[0];
+      contenedor.innerHTML = '<div class="form-control bg-light">' + listaUbics[0] + '</div>';
+    } else {
+      contenedor.innerHTML = listaUbics.map(function(u) {
+        return '<button type="button" class="btn btn-sm btn-outline-secondary btn-ubic-asistente" ' +
+               'data-ubic="' + escapeHtml(u) + '" ' +
+               'onclick="App._seleccionarUbicPaso2_(this, \'' + escapeHtml(u) + '\')">' +
+               u + '</button>';
+      }).join('');
+    }
+  }
+
+  _mostrarPasoAsistente_(2);
+}
+
+function cambiarAreaAsistente(area) {
+  _ASISTENTE_STATE_.area = area;
+  document.querySelectorAll('.btn-area-asistente').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.area === area);
+  });
+  const areaEl = document.getElementById('asistenteAreaConfirm');
+  if (areaEl) {
+    areaEl.textContent = area;
+    areaEl.className = 'badge ' + (area === 'Sistemas' ? 'bg-primary' : 'bg-success') + ' fs-6 px-3 py-2';
+  }
+}
+
+function _seleccionarUbicPaso2_(btn, ubicacion) {
+  document.querySelectorAll('.btn-ubic-asistente').forEach(function(b) {
+    b.classList.remove('btn-primary');
+    b.classList.add('btn-outline-secondary');
+  });
+  btn.classList.remove('btn-outline-secondary');
+  btn.classList.add('btn-primary');
+  _ASISTENTE_STATE_.ubicacion = ubicacion;
+}
+
+function confirmarPaso2() {
+  if (!_ASISTENTE_STATE_.ubicacion) {
+    mostrarToast('Selecciona tu ubicación', 'warning');
+    return;
+  }
+  _mostrarPasoAsistente_('Analizando');
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res?.ok) {
+        _mostrarPasoAsistente_(2);
+        mostrarToast(res?.error || 'Error al buscar categoría', 'danger');
+        return;
+      }
+      _ASISTENTE_STATE_.categoria          = res.categoria;
+      _ASISTENTE_STATE_.descripcionMejorada = res.descripcionMejorada || _ASISTENTE_STATE_.descripcionFinal;
+      _mostrarPaso3_(res);
+    })
+    .withFailureHandler(function(err) {
+      _mostrarPasoAsistente_(2);
+      mostrarToast('Error: ' + err.message, 'danger');
+    })
+    .asistenteFinalizarTicket(
+      _ASISTENTE_STATE_.descripcionFinal,
+      _ASISTENTE_STATE_.area,
+      _ASISTENTE_STATE_.ubicacion,
+      USER.email
+    );
+}
+
+// ── PASO 3: Confirmar y crear ticket ─────────────────────────────────────────
+function _mostrarPaso3_(res) {
+  document.getElementById('asistenteResumen3').textContent =
+    _ASISTENTE_STATE_.area + ' › ' + (_ASISTENTE_STATE_.ubicacion || '—');
+
+  const catEl = document.getElementById('asistenteCat3');
+  if (catEl) {
+    if (res.categoriaInvalida || !res.categoria) {
+      catEl.innerHTML = '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>No detectada — selecciona manualmente</span>';
+    } else {
+      catEl.textContent = res.categoria;
+    }
+  }
+
+  const confEl = document.getElementById('asistenteConf3');
+  if (confEl) {
+    const color = res.confianza >= 80 ? 'bg-success' : res.confianza >= 60 ? 'bg-info' : 'bg-warning';
+    confEl.className = 'badge ' + color;
+    confEl.textContent = (res.confianza || 0) + '% confianza';
+  }
+
+  const razonEl = document.getElementById('asistenteRazon3');
+  if (razonEl) razonEl.textContent = res.razon || '';
+
+  const descEl = document.getElementById('asistenteDescFinal');
+  if (descEl) descEl.value = _ASISTENTE_STATE_.descripcionMejorada;
+
+  _mostrarPasoAsistente_(3);
+}
+
+function crearTicketDesdeAsistente() {
+  const area      = _ASISTENTE_STATE_.area;
+  const ubicacion = _ASISTENTE_STATE_.ubicacion;
+  const categoria = _ASISTENTE_STATE_.categoria;
+  const desc      = document.getElementById('asistenteDescFinal')?.value?.trim()
+                    || _ASISTENTE_STATE_.descripcionFinal;
+
+  if (!ubicacion) { mostrarToast('Selecciona tu ubicación', 'warning'); return; }
+  if (!area)      { mostrarToast('No se detectó el área', 'warning'); return; }
+
+  bootstrap.Modal.getInstance(document.getElementById('modalAsistenteIA'))?.hide();
+
+  setTimeout(function() {
+    new bootstrap.Modal(document.getElementById('newModal')).show();
+
+    setTimeout(function() {
+      // Ubicación
+      const ubicEl = document.getElementById('nUbicacion');
+      if (ubicEl) {
+        ubicEl.value = ubicacion;
+        ubicEl.dispatchEvent(new Event('change'));
+        onUbicacionChange();
+      }
+
+      // Descripción
+      const descEl = document.getElementById('nDesc');
+      if (descEl) descEl.value = desc;
+
+      // Área + categoría
+      setTimeout(function() {
+        const areaEl = document.getElementById('nArea');
+        if (areaEl && area) {
+          areaEl.value = area;
+          if (categoria) {
+            _aplicarCategoriaConEspera(area, categoria);
+          } else {
+            onAreaChange('nArea', 'nCat');
+          }
+        }
+        updateNewTicketStep(3);
+        mostrarToast('✅ Ticket pre-llenado por el asistente IA', 'success');
+      }, 800);
+    }, 400);
+  }, 300);
+}
+
 // Asegurar que existan configuraciones por defecto al cargar
 (function initDefaultColumns() {
   if (!window.COLUMNAS_VISIBLES) window.COLUMNAS_VISIBLES = {};
@@ -21820,6 +22489,7 @@ function enableColumnResizing(tableId) {
 
   // =================== API PÚBLICA ===================
   return {
+    isSessionReady: () => !!(typeof USER !== 'undefined' && USER),
     login,
     logout,
     openForgot,
@@ -22004,7 +22674,22 @@ handleRechazarFile,
 abrirModalFestivo,
 guardarFestivo,
 aplicarRangoRapido,
-onScaleSliderChange
+onScaleSliderChange,
+toggleSonidoNotif,
+actualizarIconoSonido,
+_aplicarSugerenciaIA,
+_aplicarCategoriaConEspera,
+abrirAsistenteIA,
+reiniciarAsistente,
+usarPromptRapido,
+analizarConAsistente,
+responderPreguntaAsistente,
+cambiarAreaAsistente,
+confirmarPaso2,
+_mostrarPasoAsistente_,
+_mostrarPaso2_,
+_seleccionarUbicPaso2_,
+crearTicketDesdeAsistente
   };
 })();
 </script>
