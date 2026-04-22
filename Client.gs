@@ -8120,6 +8120,10 @@ function getAgentesDisponiblesPorArea(area, excluirEmail) {
 // Reemplazar la función asignarAgenteEquilibrado existente
 // ============================================================================
 
+// ============================================================================
+// ASIGNACIÓN AUTOMÁTICA POR UBICACIÓN (MEJORADA)
+// ============================================================================
+
 function asignarAgenteEquilibrado(area, ubicacionTicket, categoria) {
   const { headers: userHeaders, rows: userRows } = _readTableByHeader_(DB.USERS);
   const um = _headerMap_(userHeaders);
@@ -8162,23 +8166,32 @@ function asignarAgenteEquilibrado(area, ubicacionTicket, categoria) {
 
   // ── PRIORIDAD 0: Agente específico de categoría ──────────────────────────
   if (categoriaLower && area) {
+    // La función ya valida internamente Categoría + Ubicación
     const agenteCategoria = buscarAgenteEnCategoria(area, categoriaLower, ubicacionLower);
+    
     if (agenteCategoria && esDisponible(agenteCategoria)) {
-      // Para mantenimiento: validar que el agente de categoría también esté en la ciudad
-      if (esPresencial && ubicacionLower) {
-        const ubicFisica = getUbicacionFisica(agenteCategoria);
-        if (ubicFisica && ubicFisica !== ubicacionLower) {
-          Logger.log(`⚠️ Agente de categoría ${agenteCategoria} está en ${ubicFisica}, no en ${ubicacionLower}. Ignorando.`);
-        } else {
-          Logger.log(`✅ Por categoría (presencial OK): ${agenteCategoria}`);
-          return agenteCategoria;
+      // VALIDACIÓN: Solo si es Mantenimiento, verificamos que el agente realmente cubra esa zona
+      // Usamos su lista de cobertura (Ubicación), no solo su ciudad actual (Física).
+      if (esPresencial) {
+        const rowAgente = userRows.find(r => String(r[um.Email] || '').toLowerCase() === agenteCategoria.toLowerCase());
+        if (rowAgente) {
+          const coberturaAgente = String(rowAgente[um['Ubicación']] || '').toLowerCase().split(',').map(u => u.trim());
+
+          if (coberturaAgente.includes(ubicacionLower) || !ubicacionLower) {
+            Logger.log(`✅ PRIORIDAD MÁXIMA: Agente de categoría/ubicación encontrado: ${agenteCategoria}`);
+            return agenteCategoria;
+          } else {
+            Logger.log(`⚠️ Agente de categoría ${agenteCategoria} NO cubre la zona ${ubicacionLower}. Saltando a asignación general.`);
+          }
         }
       } else {
-        Logger.log(`✅ Por categoría: ${agenteCategoria}`);
+        // Para Sistemas/Remoto: Si hay agente en la tabla, se asigna directo.
+        Logger.log(`✅ Asignación por categoría: ${agenteCategoria}`);
         return agenteCategoria;
       }
+    } else if (agenteCategoria) {
+      Logger.log(`⚠️ Agente de categoría no disponible: ${agenteCategoria}`);
     }
-    if (agenteCategoria) Logger.log(`⚠️ Agente de categoría no disponible: ${agenteCategoria}`);
   }
 
   // ── Determinar rol requerido ─────────────────────────────────────────────
@@ -8231,7 +8244,7 @@ function asignarAgenteEquilibrado(area, ubicacionTicket, categoria) {
 
     // Sin agentes presenciales en esa ciudad → escalar al gerente del área
     Logger.log(`🚫 [PRESENCIAL] Sin agentes de mantenimiento en "${ubicacionLower}". Escalando a gerente...`);
-    const gerente = getGerenteDelArea(area);
+    const gerente = getGerenteDelArea(area); // Requiere que esta función global exista
     if (gerente && gerente.username && esDisponible(gerente.username)) {
       Logger.log(`✅ Escalado a GERENTE: ${gerente.username}`);
       return gerente.username;
@@ -8268,7 +8281,7 @@ function asignarAgenteEquilibrado(area, ubicacionTicket, categoria) {
 
     // PRIORIDAD 3: Gerente del área
     Logger.log(`⚠️ Sin agentes disponibles en "${area}", buscando gerente...`);
-    const gerente = getGerenteDelArea(area);
+    const gerente = getGerenteDelArea(area); // Requiere que esta función global exista
     if (gerente && gerente.username && esDisponible(gerente.username)) {
       Logger.log(`✅ Asignado a GERENTE: ${gerente.username}`);
       return gerente.username;
