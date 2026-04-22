@@ -4863,7 +4863,23 @@ const STATE_ACTIONS = {
       { id: 'solicitar_escalar', label: 'Escalar a Gerencia', icon: 'bi-arrow-up-circle', action: 'solicitar_escalar', btnClass: 'btn-outline-danger', requiresComment: true }
     ]
   },
-
+// ==================== COTIZACIÓN RECHAZADA ====================
+  'Cotización Rechazada': {
+    agente: [
+      { id: 'retomar', label: 'Retomar', icon: 'bi-play-fill', nextState: 'En Proceso', btnClass: 'btn-primary' },
+      { id: 'cotizacion', label: 'Nueva Cotización', icon: 'bi-currency-dollar', nextState: 'En Cotización', btnClass: 'btn-info', requiresCotizacion: true },
+      { id: 'solicitar_escalar', label: 'Solicitar Escalamiento', icon: 'bi-arrow-up-circle', action: 'solicitar_escalar', btnClass: 'btn-outline-danger', requiresComment: true }
+    ],
+    admin: [
+      { id: 'retomar', label: 'Retomar', icon: 'bi-play-fill', nextState: 'En Proceso', btnClass: 'btn-primary' },
+      { id: 'cotizacion', label: 'Nueva Cotización', icon: 'bi-currency-dollar', nextState: 'En Cotización', btnClass: 'btn-info', requiresCotizacion: true },
+      { id: 'escalar', label: 'Escalar', icon: 'bi-arrow-up-circle', nextState: 'Escalado', btnClass: 'btn-danger', requiresComment: true },
+      { id: 'reasignar', label: 'Reasignar', icon: 'bi-person-plus', action: 'reasignar', btnClass: 'btn-outline-primary' }
+    ],
+    usuario: [
+      { id: 'solicitar_escalar', label: 'Escalar a Gerencia', icon: 'bi-arrow-up-circle', action: 'solicitar_escalar', btnClass: 'btn-outline-danger', requiresComment: true }
+    ]
+  },
   // ==================== VISITA PROGRAMADA ====================
   'Visita Programada': {
     agente: [
@@ -12349,6 +12365,84 @@ function asistenteFinalizarTicket(descripcion, area, ubicacion, emailUsuario) {
 
   } catch(e) {
     Logger.log('Error asistenteFinalizarTicket: ' + e.message);
+    return { ok: false, error: e.message };
+  }
+}
+
+// ── Copiloto para Agentes (Respuestas IA) ──────────────────────────────────
+function generarBorradorRespuestaIA(ticketId, emailUsuario) {
+  try {
+    const cfg = getConfig();
+    const apiKey = cfg.groq_api_key;
+    if (!apiKey) return { ok: false, error: 'API key de Groq no configurada.' };
+
+    // 1. Obtener detalles completos del ticket y comentarios
+    const tInfo = getTicket(ticketId);
+    if (!tInfo || !tInfo.ticket) return { ok: false, error: 'Ticket no encontrado' };
+
+    const t = tInfo.ticket;
+    const comentarios = tInfo.comments || [];
+
+    // 2. Construir Contexto
+    let contexto = `TÍTULO: ${t['Título']}\n`;
+    contexto += `DESCRIPCIÓN DEL PROBLEMA: ${t['Descripción']}\n`;
+    contexto += `ÁREA ASIGNADA: ${t['Área']}\n`;
+    contexto += `CATEGORÍA: ${t['Categoría']}\n`;
+    contexto += `ESTATUS ACTUAL: ${t['Estatus']}\n\n`;
+
+    if (comentarios.length > 0) {
+      contexto += `HISTORIAL RECIENTE DE COMENTARIOS:\n`;
+      // Solo enviamos los últimos 5 comentarios para no gastar tokens y dar contexto rápido
+      comentarios.slice(0, 5).reverse().forEach(c => {
+        const textoLimpio = String(c.comentario || '').replace(/<[^>]*>?/gm, ''); // Quita HTML
+        contexto += `- ${c.autorNombre || c.autorEmail}: ${textoLimpio}\n`;
+      });
+    } else {
+      contexto += `El ticket es nuevo, no hay comentarios previos.\n`;
+    }
+
+    // 3. Crear el Prompt
+    const prompt = 
+      `Eres un asistente experto de soporte técnico (Help Desk) en la empresa Bexalta.\n` +
+      `Tu tarea es redactar un BORRADOR DE RESPUESTA amable, claro y profesional que el Agente le enviará al Usuario.\n\n` +
+      `REGLAS ESTRICTAS:\n` +
+      `1. Si el ticket es nuevo, saluda, agradece el reporte y da un primer paso de solución (troubleshooting) o indica que ya lo están revisando.\n` +
+      `2. Si ya hay comentarios, lee el contexto y sugiere el siguiente paso lógico en la conversación.\n` +
+      `3. Usa etiquetas HTML básicas para dar formato: <b>, <i>, <br>, <ul>, <li>.\n` +
+      `4. NO escribas código Markdown. NO encierres tu respuesta en "\`\`\`html". Devuelve EXCLUSIVAMENTE el texto HTML puro listo para pegarse en un editor.\n\n` +
+      `DATOS DEL TICKET A RESPONDER:\n${contexto}`;
+
+    // 4. Llamada a Groq
+    const response = UrlFetchApp.fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { 'Authorization': 'Bearer ' + apiKey },
+      payload: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: 'Eres un experto en soporte. Respondes con HTML puro, sin markdown ni explicaciones.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 400
+      }),
+      muteHttpExceptions: true
+    });
+
+    if (response.getResponseCode() !== 200) {
+      return { ok: false, error: 'Error del servidor IA: ' + response.getResponseCode() };
+    }
+
+    const data = JSON.parse(response.getContentText());
+    let texto = data?.choices?.[0]?.message?.content || '';
+
+    // Limpieza agresiva por si la IA es terca y devuelve markdown
+    texto = texto.replace(/```html/gi, '').replace(/```/g, '').trim();
+
+    return { ok: true, draft: texto };
+
+  } catch (e) {
+    Logger.log('Error en generarBorradorRespuestaIA: ' + e.message);
     return { ok: false, error: e.message };
   }
 }
