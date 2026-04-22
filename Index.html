@@ -6122,20 +6122,30 @@ canvas {
 
 <!-- Widget Visitas Programadas — Vista Gerencial -->
 <div class="card shadow-sm mb-3 mt-3 d-none" id="widgetVisitas_g">
-  <div class="card-header d-flex justify-content-between align-items-center py-2" style="background: #f1f5f9;">
+  <div class="card-header d-flex justify-content-between align-items-center py-2 cursor-pointer" 
+       onclick="App.toggleSeccion('visitasContainer_g', 'iconVisitasGerenteToggle')" 
+       style="background: #f1f5f9; cursor: pointer;">
+    
     <h6 class="mb-0 fw-bold" style="font-size: 0.9rem;">
       <i class="bi bi-calendar-check me-2" style="color: #334155;"></i>Visitas Programadas del Área
-      <span class="badge ms-2" id="visitasBadge_g" style="display:none; background: #334155; color: white;">0</span>
+      <span class="badge rounded-pill px-3 ms-2 shadow-sm" id="visitasBadge_g" 
+            style="display:none; background: linear-gradient(135deg, #0d6efd 0%, #0b3ea1 100%); color: white; font-size: 0.7rem;">
+      </span>
     </h6>
-    <div>
-      <button class="btn btn-sm btn-outline-secondary border-0" onclick="App.filtrarGerentePorEstado('visitasProgramadas')" title="Filtrar en tabla">
+
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-sm btn-outline-secondary border-0 p-1" 
+              onclick="event.stopPropagation(); App.filtrarGerentePorEstado('visitasProgramadas')" title="Filtrar en tabla">
         <i class="bi bi-table"></i>
       </button>
-      <button class="btn btn-sm btn-outline-secondary border-0" onclick="App.loadVisitasGerente()" title="Recargar">
+      <button class="btn btn-sm btn-outline-secondary border-0 p-1" 
+              onclick="event.stopPropagation(); App.loadVisitasGerente()" title="Recargar">
         <i class="bi bi-arrow-clockwise"></i>
       </button>
+      <i class="bi bi-chevron-up text-secondary ms-2" id="iconVisitasGerenteToggle"></i>
     </div>
   </div>
+
   <div class="card-body p-2" id="visitasContainer_g" style="max-height: 400px; overflow-y: auto;">
     <div class="text-center py-3 text-muted">Cargando...</div>
   </div>
@@ -6833,42 +6843,45 @@ canvas {
     </div>
 
     <!-- VISITA PROGRAMADA INFO -->
-    <div id="dVisitaInfo" class="card card-body mb-3 d-none border-2 border-teal" style="background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);">
-      <h6 class="text-teal mb-3" style="color: #0d9488;">
-        <i class="bi bi-calendar-event"></i>
-        Visita Programada
-      </h6>
-      <div class="row g-2">
-        <div class="col-md-6">
-          <label class="form-label small text-muted">Fecha</label>
-          <div id="dVisitaFecha" class="fw-semibold">—</div>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label small text-muted">Hora</label>
-          <div id="dVisitaHora" class="fw-semibold">—</div>
-        </div>
-        <div class="col-12" id="dVisitaNotasContainer">
-          <label class="form-label small text-muted">Notas</label>
-          <div id="dVisitaNotas" class="text-secondary">—</div>
-        </div>
+<div id="dVisitaInfo" class="card card-body mb-3 d-none border-2 border-teal" style="background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);">
+      <div class="d-flex justify-content-between align-items-center cursor-pointer" onclick="App.toggleSeccion('dVisitaContent', 'iconVisitaToggle')" style="cursor: pointer;">
+        <h6 class="text-teal mb-0" style="color: #0d9488; font-weight: 700;">
+          <i class="bi bi-calendar-event"></i> Visita Programada
+          <span class="badge ms-2 shadow-sm" id="badgeVisitaStatus" style="font-size: 0.65rem; letter-spacing: 0.5px; display: none;"></span>
+        </h6>
+        <i class="bi bi-chevron-up text-teal fs-5" id="iconVisitaToggle"></i>
       </div>
-      <div id="dVisitaCountdown" class="mt-2 small text-muted"></div>
-      <!-- Historial de visitas -->
-      <div id="dVisitaHistorial" class="d-none mt-3 pt-3" style="border-top: 1px dashed #99f6e4;">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-          <h6 class="mb-0 small fw-bold" style="color: #0d9488;">
-            <i class="bi bi-clock-history me-1"></i>Historial de Visitas
-          </h6>
-          <span class="badge bg-teal" id="visitaHistCount" style="background:#0d9488;">0</span>
+      
+      <div id="dVisitaContent" class="mt-3">
+        <div class="row g-2">
+          <div class="col-md-6">
+            <label class="form-label small text-muted">Fecha</label>
+            <div id="dVisitaFecha" class="fw-semibold">—</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small text-muted">Hora</label>
+            <div id="dVisitaHora" class="fw-semibold">—</div>
+          </div>
+          <div class="col-12" id="dVisitaNotasContainer">
+            <label class="form-label small text-muted">Notas</label>
+            <div id="dVisitaNotas" class="text-secondary">—</div>
+          </div>
         </div>
-        <div id="dVisitaTimeline"></div>
+        <div id="dVisitaCountdown" class="mt-2 small text-muted"></div>
+        <div id="dVisitaHistorial" class="d-none mt-3 pt-3" style="border-top: 1px dashed #99f6e4;">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h6 class="mb-0 small fw-bold" style="color: #0d9488;">
+              <i class="bi bi-clock-history me-1"></i>Historial de Visitas
+            </h6>
+            <span class="badge bg-teal" id="visitaHistCount" style="background:#0d9488;">0</span>
+          </div>
+          <div id="dVisitaTimeline"></div>
+        </div>
       </div>
     </div>
 
-    <!-- ESCALAMIENTO INFO -->
     <div id="escalamientoInfo" class="d-none mb-3"></div>
 
-    <!-- DESCRIPCIÓN -->
     <div class="mb-3">
       <label class="form-label fw-semibold">
         <i class="bi bi-card-text text-primary me-1"></i>Descripción
@@ -6876,7 +6889,6 @@ canvas {
       <div id="dDesc" class="form-control bg-light" style="min-height:80px; white-space:pre-wrap"></div>
     </div>
 
-    <!-- ESTADO Y ASIGNACIÓN -->
     <div class="row g-2 mb-3">
       <div class="col-md-6">
         <label class="form-label fw-semibold">
@@ -6893,8 +6905,7 @@ canvas {
           <i class="bi bi-person-badge text-primary me-1"></i>Asignado a
         </label>
         <div class="input-group">
-          <select id="dAssign" class="form-select" onchange="App.onAssignChange()">
-          </select>
+          <select id="dAssign" class="form-select" onchange="App.onAssignChange()"></select>
           <span id="assignSpinner" class="input-group-text d-none">
             <span class="spinner-border spinner-border-sm"></span>
           </span>
@@ -6905,137 +6916,100 @@ canvas {
       </div>
     </div>
 
-    <!-- BOTONES DE ACCIÓN -->
-    <div id="dActionButtons" class="mb-3">
-    </div>
+    <div id="dActionButtons" class="mb-3"></div>
 
-    <!-- ACCIONES DE USUARIO -->
     <div id="userActionsContainer" class="mb-3"></div>
 
-    <!-- CAMPOS DE COTIZACIÓN -->
     <div id="dCotizacionFields" class="card card-body mb-3 d-none border-2">
       <h6 class="text-info mb-3">
-        <i class="bi bi-currency-dollar"></i>
-        Detalles de Cotización
+        <i class="bi bi-currency-dollar"></i> Detalles de Cotización
       </h6>
-      <div class="row g-2">
-        <div class="col-md-6">
-          <label class="form-label small text-muted">Presupuesto</label>
-          <div class="input-group input-group-sm">
-            <span class="input-group-text">$</span>
-            <input id="dPresupuesto" type="text" class="form-control bg-light" readonly>
-            <span class="input-group-text">MXN</span>
-          </div>
-        </div>
-        <div class="col-md-12">
-  <label class="form-label small text-muted">Aprobadores y Notificados</label>
-  <div class="input-group input-group-sm">
-    <span class="input-group-text"><i class="bi bi-people"></i></span>
-    <input id="dAprobadorEmail" type="text" class="form-control" placeholder="ejemplo1@empresa.com, ejemplo2@empresa.com">
-  </div>
-  <small class="text-muted" style="font-size: 10px;">
-    * El primer correo debe ser el Gerente (Aprobador). Los demás recibirán solo notificación.
-  </small>
-</div>
-        <div class="col-md-6">
-          <label class="form-label small text-muted">Tipo de Proveedor</label>
-          <select id="dTipoProveedor" class="form-select form-select-sm" disabled>
-            <option value="Externo">Externo (proveedor)</option>
-            <option value="Interno">Interno (almacén)</option>
-          </select>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label small text-muted">Tiempo Estimado(Días hábiles)</label>
-          <input id="dTiempoCotizacion" type="text" class="form-control form-control-sm bg-light" readonly>
-        </div>
       </div>
-      <div id="dStatusAprobacion" class="mt-3 small fw-semibold"></div>
-    </div>
 
     <hr>
 
-    <!-- ============================================================ -->
-    <!-- SECCIÓN DE COMENTARIOS - AHORA CON INPUT ARRIBA -->
-    <!-- ============================================================ -->
     <div class="comments-section">
-      <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-3 cursor-pointer" onclick="App.toggleSeccion('dCommentsContent', 'iconCommentsToggle')" style="cursor: pointer;">
         <h6 class="fw-semibold mb-0">
           <i class="bi bi-chat-dots text-primary me-1"></i>Comentarios
+          <span class="badge bg-secondary ms-2" id="commentCount">0</span>
         </h6>
-        <span class="badge bg-secondary" id="commentCount">0</span>
+        <i class="bi bi-chevron-up text-secondary fs-5" id="iconCommentsToggle"></i>
       </div>
       
-      <!-- ========== NUEVO: INPUT DE COMENTARIO ARRIBA ========== -->
-      <div class="comment-input-area mb-3 p-3 bg-light rounded border">
-        <h6 class="small fw-semibold text-primary mb-2">
-          <i class="bi bi-plus-circle me-1"></i>Agregar Nuevo Comentario
-        </h6>
-        
-        <!-- Tipo de comentario -->
-        <div class="comment-type-toggle mb-2">
-          <div class="btn-group btn-group-sm w-100" role="group">
-            <input type="radio" class="btn-check" name="commentType" id="commentPublic" checked>
-            <label class="btn btn-outline-primary" for="commentPublic">
-              <i class="bi bi-globe me-1"></i>Público
-            </label>
-            <input type="radio" class="btn-check" name="commentType" id="commentPrivate">
-            <label class="btn btn-outline-warning" for="commentPrivate">
-              <i class="bi bi-shield-lock me-1"></i>Interno
-            </label>
+      <div id="dCommentsContent">
+        <div class="comment-input-area mb-3 p-3 bg-light rounded border">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="small fw-semibold text-primary mb-0">
+              <i class="bi bi-plus-circle me-1"></i>Agregar Nuevo Comentario
+            </h6>
+            <button type="button" class="btn btn-sm shadow-sm" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;font-size:0.75rem; font-weight: 600;" onclick="App.generarBorradorIA()" id="btnCopilotoIA" title="Generar borrador de respuesta con IA">
+              <i class="bi bi-magic me-1"></i>Copiloto IA
+            </button>
           </div>
-        </div>
-        
-        <div class="comment-type-info mb-2" id="commentTypeInfo">
-          <small class="text-primary">
-            <i class="bi bi-info-circle me-1"></i>
-            El usuario recibirá notificación por correo y Telegram
-          </small>
-        </div>
-        
-        <!-- Textarea con botón enviar -->
-        <div class="position-relative mb-2" style="padding-bottom: 45px;">
-          <div id="dCommentEditor" style="height: 120px; background: white; border-radius: 0 0 8px 8px;"></div>
-          <button 
-            class="btn btn-primary btn-send-comment" 
-            onclick="App.sendComment()"
-            title="Enviar comentario"
-            style="position: absolute; bottom: 5px; right: 10px; z-index: 50;">
-            <i class="bi bi-send-fill"></i>
-          </button>
-        </div>
-        
-        <!-- ========== NUEVO: ADJUNTAR ARCHIVO EN COMENTARIO ========== -->
-        <div class="comment-attachment-area mb-2">
-          <div class="d-flex align-items-center gap-2">
-            <label class="btn btn-outline-secondary btn-sm mb-0" for="commentFileInput" title="Adjuntar archivo">
-              <i class="bi bi-paperclip me-1"></i>Adjuntar archivo
-            </label>
-            <input 
-              type="file" 
-              id="commentFileInput" 
-              class="d-none" 
-              onchange="App.handleCommentFileSelect(this)"
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt,.csv">
-            <div id="commentFilePreview" class="small text-muted d-none">
-              <span id="commentFileName"></span>
-              <button type="button" class="btn btn-link btn-sm text-danger p-0 ms-2" onclick="App.clearCommentFile()">
-                <i class="bi bi-x-circle"></i>
-              </button>
+          
+          <div class="comment-type-toggle mb-2">
+            <div class="btn-group btn-group-sm w-100" role="group">
+              <input type="radio" class="btn-check" name="commentType" id="commentPublic" checked>
+              <label class="btn btn-outline-primary" for="commentPublic">
+                <i class="bi bi-globe me-1"></i>Público
+              </label>
+              <input type="radio" class="btn-check" name="commentType" id="commentPrivate">
+              <label class="btn btn-outline-warning" for="commentPrivate">
+                <i class="bi bi-shield-lock me-1"></i>Interno
+              </label>
             </div>
           </div>
-          <small class="text-muted d-block mt-1">
-            Formatos: PDF, Word, Excel, imágenes, texto (máx. 10MB)
-          </small>
+          
+          <div class="comment-type-info mb-2" id="commentTypeInfo">
+            <small class="text-primary">
+              <i class="bi bi-info-circle me-1"></i>
+              El usuario recibirá notificación por correo y Telegram
+            </small>
+          </div>
+          
+          <div class="position-relative mb-2" style="padding-bottom: 45px;">
+            <div id="dCommentEditor" style="height: 120px; background: white; border-radius: 0 0 8px 8px;"></div>
+            <button 
+              class="btn btn-primary btn-send-comment" 
+              onclick="App.sendComment()"
+              title="Enviar comentario"
+              style="position: absolute; bottom: 5px; right: 10px; z-index: 50;">
+              <i class="bi bi-send-fill"></i>
+            </button>
+          </div>
+          
+          <div class="comment-attachment-area mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <label class="btn btn-outline-secondary btn-sm mb-0" for="commentFileInput" title="Adjuntar archivo">
+                <i class="bi bi-paperclip me-1"></i>Adjuntar archivo
+              </label>
+              <input 
+                type="file" 
+                id="commentFileInput" 
+                class="d-none" 
+                onchange="App.handleCommentFileSelect(this)"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt,.csv">
+              <div id="commentFilePreview" class="small text-muted d-none">
+                <span id="commentFileName"></span>
+                <button type="button" class="btn btn-link btn-sm text-danger p-0 ms-2" onclick="App.clearCommentFile()">
+                  <i class="bi bi-x-circle"></i>
+                </button>
+              </div>
+            </div>
+            <small class="text-muted d-block mt-1">
+              Formatos: PDF, Word, Excel, imágenes, texto (máx. 10MB)
+            </small>
+          </div>
+          
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted" id="charCount">0/1000 caracteres</small>
+            <small class="text-muted">Ctrl+Enter para enviar</small>
+          </div>
         </div>
         
-        <div class="d-flex justify-content-between align-items-center">
-          <small class="text-muted" id="charCount">0/1000 caracteres</small>
-          <small class="text-muted">Ctrl+Enter para enviar</small>
-        </div>
+        <div id="dComments" class="comments-container"></div>
       </div>
-      
-      <!-- Lista de comentarios existentes -->
-      <div id="dComments" class="comments-container"></div>
     </div>
 
     <hr class="my-3">
@@ -9536,6 +9510,7 @@ function showDetailPanel(d) {
     'Abierto': { bg: '#0ea5e9', text: '#fff', icon: 'bi-folder2-open' },
     'En Proceso': { bg: '#2563eb', text: '#fff', icon: 'bi-gear-fill' },
     'En Cotización': { bg: '#8b5cf6', text: '#fff', icon: 'bi-currency-dollar' },
+    'Cotización Rechazada': { bg: '#dc2626', text: '#fff', icon: 'bi-x-circle' }, 
     'Visita Programada': { bg: '#0d9488', text: '#fff', icon: 'bi-calendar-event' },
     'Escalado': { bg: '#dc2626', text: '#fff', icon: 'bi-exclamation-triangle' },
     'Resuelto': { bg: '#059669', text: '#fff', icon: 'bi-check-circle' },
@@ -12560,13 +12535,34 @@ function saveDetail() {
   const newAssign = assignEl ? assignEl.value : '';
   const currentAssign = CURRENT_DETAIL['AsignadoA'] || '';
   
-  if (newAssign === currentAssign) {
+
+  
+if (newAssign === currentAssign) {
     mostrarToast('No hay cambios para guardar', 'info');
     return;
   }
   
-  if (!confirm(`¿Reasignar el ticket a ${newAssign || 'nadie'}?`)) return;
+  // Utilizar el modal UI del sistema en vez del alert nativo
+  if (typeof showConfirmModal === 'function') {
+    showConfirmModal('Reasignar Ticket', `¿Estás seguro de reasignar el ticket a <strong>${newAssign || 'nadie'}</strong>?`, () => {
+      showLoading(true, 'Guardando cambios...');
+      google.script.run
+        .withSuccessHandler(r => {
+          showLoading(false);
+          mostrarToast('Ticket actualizado', 'success');
+          reloadTicketsRole(CURRENT_ROLE, PAGE[CURRENT_ROLE] || 1);
+          openDetail(id);
+        })
+        .withFailureHandler(e => {
+          showLoading(false);
+          mostrarToast(e?.message || e, 'error');
+        })
+        .updateTicket(id, { 'AsignadoA': newAssign });
+    }, 'info');
+    return;
+  }
   
+  if (!confirm(`¿Reasignar el ticket a ${newAssign || 'nadie'}?`)) return;
   showLoading(true, 'Guardando cambios...');
   
   google.script.run
@@ -12650,25 +12646,41 @@ function withUIRefresh(operation, ticketId = null) {
     });
   }
 
-  function cerrarTicketManual() {
+function cerrarTicketManual() {
     const id = CURRENT_DETAIL?.ID || CURRENT_DETAIL?.Id || CURRENT_DETAIL?.id;
     if (!id) return;
 
-    if (!confirm('¿Deseas cerrar este ticket definitivamente?')) return;
+    // Lógica encapsulada para ejecutar el cierre
+    const procesarCierre = () => {
+      showLoading(true, 'Cerrando ticket...');
+      google.script.run
+        .withSuccessHandler(() => {
+          showLoading(false);
+          mostrarToast('Ticket cerrado correctamente', 'success');
+          reloadTicketsRole(CURRENT_ROLE);
+          openDetail(id);
+        })
+        .withFailureHandler(e => {
+          showLoading(false);
+          mostrarToast('Error: ' + (e.message || e), 'error');
+        })
+        .updateTicket(id, { Estatus: 'Cerrado' });
+    };
 
-    showLoading(true, 'Cerrando ticket...');
-    google.script.run
-      .withSuccessHandler(() => {
-        showLoading(false);
-        mostrarToast('Ticket cerrado correctamente', 'success');
-        reloadTicketsRole(CURRENT_ROLE);
-        openDetail(id);
-      })
-      .withFailureHandler(e => {
-        showLoading(false);
-        alert('Error: ' + (e.message || e));
-      })
-      .updateTicket(id, { Estatus: 'Cerrado' });
+    // Usar el modal del sistema si está disponible
+    if (typeof showConfirmModal === 'function') {
+      showConfirmModal(
+        'Cerrar Ticket', 
+        '¿Estás seguro de que deseas cerrar este ticket definitivamente?', 
+        procesarCierre, 
+        'danger'
+      );
+      return;
+    }
+
+    // Fallback de seguridad por si no carga la función del modal
+    if (!confirm('¿Deseas cerrar este ticket definitivamente?')) return;
+    procesarCierre();
   }
 
   // =================== ADMIN ===================
@@ -13901,20 +13913,31 @@ function handleActionClick(action, ticket) {
     return;
   }
   
-  // Si requiere comentario general de cambio de estado
-  if (action.requiresComment) {
-    if (typeof App !== 'undefined' && App.showCommentModal) App.showCommentModal(action, ticketId, folio);
-    else showCommentModal(action, ticketId, folio);
-    return;
-  }
-  
-  // Confirmación simple para cambios directos
-  const confirmMsg = `¿${action.label} el ticket #${folio}?`;
-  if (!confirm(confirmMsg)) return;
-  
-  if (typeof App !== 'undefined' && App.executeStateChange) App.executeStateChange(ticketId, action.nextState, '');
-  else executeStateChange(ticketId, action.nextState, '');
-}
+// Si requiere comentario general de cambio de estado
+      if (action.requiresComment) {
+        if (typeof App !== 'undefined' && App.showCommentModal) App.showCommentModal(action, ticketId, folio);
+        else showCommentModal(action, ticketId, folio);
+        return;
+      }
+      
+      // Confirmación simple integrando el modal global del sistema (Elimina el alert nativo)
+      const confirmMsg = `¿Estás seguro de <strong>${action.label.toLowerCase()}</strong> el ticket <strong>#${folio}</strong>?`;
+      
+      if (typeof showConfirmModal === 'function') {
+        showConfirmModal(action.label, confirmMsg, () => {
+          if (typeof App !== 'undefined' && App.executeStateChange) {
+            App.executeStateChange(ticketId, action.nextState, '');
+          } else {
+            executeStateChange(ticketId, action.nextState, '');
+          }
+        }, 'info');
+      } else {
+        // Fallback en caso de que no esté definido el modal global
+        if (!confirm(`¿${action.label} el ticket #${folio}?`)) return;
+        if (typeof App !== 'undefined' && App.executeStateChange) App.executeStateChange(ticketId, action.nextState, '');
+        else executeStateChange(ticketId, action.nextState, '');
+      }
+    }
 
 function showSolicitarEscalamientoModal(ticketId, folio) {
   const existingModal = document.getElementById('solicitarEscalamientoModal');
@@ -14853,6 +14876,12 @@ function renderVisitaInfo(ticket, forceRefresh) {
 
   visitaDiv.classList.remove('d-none');
 
+  // Garantizar que los acordeones se abren por defecto al cargar un nuevo ticket
+  const content = document.getElementById('dVisitaContent');
+  const icon = document.getElementById('iconVisitaToggle');
+  if (content) content.style.display = 'block';
+  if (icon) icon.className = 'bi bi-chevron-up text-teal fs-5';
+
   // Poner placeholders mientras carga el historial real
   var elFecha = document.getElementById('dVisitaFecha');
   var elHora = document.getElementById('dVisitaHora');
@@ -14862,9 +14891,38 @@ function renderVisitaInfo(ticket, forceRefresh) {
   if (elHora) elHora.textContent = '—';
   if (elNotas) elNotas.textContent = t.NotasVisita || '';
 
+  // Setear el Badge de urgencia de visita
+  const badge = document.getElementById('badgeVisitaStatus');
+  if (badge) {
+    badge.style.display = 'none';
+    if (t.FechaVisita && t.FechaVisita !== '—') {
+      // Limpiar hora para evitar el bug de formato de Google Sheets
+      let hora = String(t.HoraVisita || '').replace(/'/g, '').trim();
+      if (!hora || hora.includes('1899')) hora = '08:00';
+      
+      const fv = new Date(`${t.FechaVisita}T${hora}:00`);
+      if (!isNaN(fv.getTime())) {
+        const diffHoras = (fv - new Date()) / 36e5; // Diferencia en horas
+        badge.style.display = 'inline-block';
+        
+        if (diffHoras < 0) { 
+          badge.textContent = '¡Vencida!'; 
+          badge.className = 'badge bg-danger ms-2 shadow-sm'; 
+        } else if (diffHoras <= 24) { 
+          badge.textContent = 'En breve'; 
+          badge.className = 'badge bg-warning text-dark ms-2 shadow-sm'; 
+        } else { 
+          badge.textContent = 'Agendada'; 
+          badge.className = 'badge bg-success ms-2 shadow-sm'; 
+        }
+      }
+    }
+  }
+
+  // Carga el historial detallado de la hoja de cálculo
   if (t.ID) {
-  cargarHistorialVisitasConPanel(t.ID);
-}
+    cargarHistorialVisitasConPanel(t.ID);
+  }
 }
 
 
@@ -19864,11 +19922,14 @@ function badgeEstatus(estatus) {
     'Abierto':        { bg: '#0ea5e9', text: '#fff' },
     'En Proceso':     { bg: '#2563eb', text: '#fff' },
     'En Cotización':  { bg: '#8b5cf6', text: '#fff' },
+    'Cotización Rechazada': { bg: '#dc2626', text: '#fff' },
+    'En Espera':      { bg: '#f59e0b', text: '#000' },
     'En Espera':      { bg: '#f59e0b', text: '#000' },
     'Escalado':       { bg: '#dc2626', text: '#fff' },
     'Resuelto':       { bg: '#059669', text: '#fff' },
     'Cerrado':        { bg: '#111827', text: '#fff' },
-    'Visita Programada': { bg: '#0891b2', text: '#fff' }
+    'Visita Programada': { bg: '#0891b2', text: '#fff' },
+
   };
   const c = colors[estatus] || { bg: '#6b7280', text: '#fff' };
   return `<span class="badge" style="background-color:${c.bg};color:${c.text};padding:0.25em 0.5em;border-radius:4px;font-weight:500;">${escapeHtml(estatus || '')}</span>`;
@@ -19884,6 +19945,63 @@ let quillEditor = null;
 // FUNCIÓN sendComment COMPLETA CON ADJUNTOS
 // Reemplaza la función existente
 // ============================================================
+
+// Mostrar/Ocultar secciones en el panel de detalle
+  function toggleSeccion(contentId, iconId) {
+    const content = document.getElementById(contentId);
+    const icon = document.getElementById(iconId);
+    if (!content || !icon) return;
+
+    if (content.style.display === 'none') {
+      content.style.display = 'block';
+      icon.classList.remove('bi-chevron-down');
+      icon.classList.add('bi-chevron-up');
+    } else {
+      content.style.display = 'none';
+      icon.classList.remove('bi-chevron-up');
+      icon.classList.add('bi-chevron-down');
+    }
+  }
+
+  // Llamada al backend para generar borrador con IA
+  function generarBorradorIA() {
+    const ticketId = CURRENT_DETAIL?.ID || CURRENT_DETAIL?.Id || CURRENT_DETAIL?.id || '';
+    if (!ticketId) {
+      mostrarToast('No hay ticket seleccionado', 'warning');
+      return;
+    }
+
+    const btn = document.getElementById('btnCopilotoIA');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Pensando...';
+
+    google.script.run
+      .withSuccessHandler(res => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-magic me-1"></i>Copiloto IA';
+        
+        if (res.ok) {
+          if (quillEditor) {
+            const currentHtml = quillEditor.root.innerHTML;
+            // Si está vacío, reemplaza. Si ya hay texto, añade un salto de línea.
+            if (currentHtml === '<p><br></p>' || currentHtml.trim() === '') {
+               quillEditor.root.innerHTML = res.draft;
+            } else {
+               quillEditor.root.innerHTML = currentHtml + '<br>' + res.draft;
+            }
+            mostrarToast('Borrador generado. Revisa y ajusta antes de enviar.', 'success');
+          }
+        } else {
+          mostrarToast('Error IA: ' + res.error, 'error');
+        }
+      })
+      .withFailureHandler(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-magic me-1"></i>Copiloto IA';
+        mostrarToast('Error de red: ' + err.message, 'error');
+      })
+      .generarBorradorRespuestaIA(ticketId, USER?.email || '');
+  }
 
 // Variable global para almacenar el archivo seleccionado
 let selectedCommentFile = null;
@@ -21634,10 +21752,21 @@ function renderVisitaWidget(visitas, sufix, modo) {
   console.log(`✅ [Render Widget] Pintando ${visitas.length} tarjetas en _${sufix}`);
   widget.classList.remove('d-none');
   
+  // Actualización del badge con color llamativo y leyenda dinámica
   if (badge) {
-    badge.textContent = visitas.length;
+    if (sufix === 'g') {
+      badge.textContent = visitas.length + (visitas.length === 1 ? ' Visita Pendiente' : ' Visitas Pendientes');
+    } else {
+      badge.textContent = visitas.length;
+    }
     badge.style.display = 'inline-block';
   }
+
+  // Asegurar que al cargar datos la sección esté expandida por defecto (solo para el widget de gerencia)
+  const content = document.getElementById('visitasContainer_' + sufix);
+  const icon = document.getElementById('iconVisitasGerenteToggle');
+  if (content) content.style.display = 'block';
+  if (icon && sufix === 'g') icon.className = 'bi bi-chevron-up text-secondary ms-2';
 
   let html = '';
   visitas.forEach(v => {
@@ -22689,7 +22818,9 @@ confirmarPaso2,
 _mostrarPasoAsistente_,
 _mostrarPaso2_,
 _seleccionarUbicPaso2_,
-crearTicketDesdeAsistente
+crearTicketDesdeAsistente,
+toggleSeccion,
+    generarBorradorIA
   };
 })();
 </script>
